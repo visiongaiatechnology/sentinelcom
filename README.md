@@ -259,7 +259,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 | **ZEUS** — Pre-Boot WAF via `auto_prepend_file`) | ❌ | ✅ |
 | **MORPHEUS** — Hypervisor for Plugins | ❌ | ✅ |
 | **GORGON** — Global Swarm Intelligence Threat Feed | ❌ | ✅ |
-| **Hardware Crypto** — AES-256-GCM Database Payload Encryption | ❌ | ✅ |
+| **API CRYPTO VAULT** — AES-256-GCM Database Payload Encryption | ❌ | ✅ |
 | Deterministic WAF (AEGIS Lite) | ✅ | ✅ |
 | Kernel Hardening (TITAN Lite)  | ✅ | ✅ |
 | Stealth Engine (HADES Lite)  | ✅ | ✅ |
