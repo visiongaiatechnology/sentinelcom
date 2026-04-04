@@ -18,6 +18,7 @@ class VIS_Aegis {
     private $patterns = [
         'rce'  => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*+\(/i',
         'lfi'  => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
+        'gql_recon' => '/(?:__schema|__type)\s*+(?:\{|\(|:)/i',
         'sqli' => '/(?:union\s++select|information_schema|waitfor\s++delay|hex\s*+\(|unhex\s*+\(|concat\s*+\(|char\s*+\(|\s++OR\s++1=1)/i',
         'xss'  => '/(?:<script|javascript:|on(?:load|error|click|mouseover)=|base64_decode|vbscript:|data:text\/html)/i',
         'ua'   => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
