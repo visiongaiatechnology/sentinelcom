@@ -1,4 +1,4 @@
-# ⚔️ VGT Sentinel — Community Edition (Silber Status)
+# ⚔️ VGT Sentinel — Community Edition
 
 [![License](https://img.shields.io/badge/License-AGPLv3-green?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen?style=for-the-badge)](#)
