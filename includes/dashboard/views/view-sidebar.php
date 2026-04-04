@@ -45,21 +45,24 @@ if (!defined('ABSPATH')) exit;
         <?php endforeach; ?>
     </nav>
     
-    <!-- SYSTEM STATUS FOOTER -->
-    <div class="vis-sidebar-footer">
-        <div class="vis-status-row">
-            <span class="vis-status-label">STATUS</span>
-            <span class="vis-status-value status-online">ONLINE</span>
+    <!-- SYSTEM STATUS FOOTER (VGT ZERO-DEPENDENCY UI) -->
+    <div style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: #020617;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px; font-family: monospace;">
+            <span style="color: #64748b; font-weight: 700; letter-spacing: 0.5px;">STATUS</span>
+            <span style="color: #10b981; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                <span style="display: block; width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);"></span>
+                ONLINE
+            </span>
         </div>
-        <div class="vis-status-row">
-            <span class="vis-status-label">CORE</span>
-            <span class="vis-status-value"><?php echo esc_html(VIS_VERSION); ?></span>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-family: monospace;">
+            <span style="color: #64748b; font-weight: 700; letter-spacing: 0.5px;">CORE</span>
+            <span style="color: #94a3b8; font-weight: 700;"><?php echo defined('VIS_VERSION') ? esc_html(VIS_VERSION) : '4.7.0'; ?></span>
         </div>
         
-        <!-- Subtle Upgrade Hint (Optional for Community) -->
-        <div style="margin-top:15px; padding:10px; background:rgba(6, 182, 212, 0.05); border-radius:4px; border:1px solid rgba(6, 182, 212, 0.1);">
-            <p style="margin:0; font-size:9px; color:#06b6d4; text-align:center; font-weight:700; letter-spacing:0.5px;">
-                VGT OMEGA PROTOCOL ACTIVE
+        <!-- Subtle Upgrade Hint -->
+        <div style="margin-top: 20px; padding: 10px; background: rgba(6, 182, 212, 0.05); border-radius: 4px; border: 1px solid rgba(6, 182, 212, 0.1);">
+            <p style="margin: 0; font-size: 9px; color: #06b6d4; text-align: center; font-weight: 800; letter-spacing: 0.5px;">
+                VGT OMEGA PROTOCOL
             </p>
         </div>
     </div>
