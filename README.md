@@ -19,6 +19,8 @@ VGT Sentinel Community Edition is a **modular, zero-dependency WordPress securit
 
 It is the open-source core of the VGT Sentinel suite — a battle-hardened, multi-layered defense system built on a **Zero-Trust architecture**. Every request is inspected, every header hardened, every upload analyzed, every file hashed.
 
+Update: Mu-Deployer EasterEGG
+
 <img width="1737" height="914" alt="{1D2D5C45-A94D-4041-AE56-1791A8E40496}" src="https://github.com/user-attachments/assets/feef431e-a042-4e6c-81f3-fcbeeb6cc8b8" />
 
 
