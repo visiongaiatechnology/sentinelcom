@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
  * SIDEBAR VIEW: COMMUNITY CORE EDITION
  * Status: PLATIN STATUS
  * Logic: Dynamische Iteration über Controller-Tabs. Minimale DOM-Last.
+ * Fix: Footer-Offset +10px zur Vermeidung von Overflow.
  */
 ?>
 <aside class="vis-sidebar">
@@ -46,7 +47,8 @@ if (!defined('ABSPATH')) exit;
     </nav>
     
     <!-- SYSTEM STATUS FOOTER (VGT ZERO-DEPENDENCY UI) -->
-    <div style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: #020617;">
+    <!-- FIX: margin-bottom: 10px sorgt für den nötigen Abstand zum unteren Rand -->
+    <div style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: #020617; margin-bottom: 10px; border-radius: 0 0 8px 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px; font-family: monospace;">
             <span style="color: #64748b; font-weight: 700; letter-spacing: 0.5px;">STATUS</span>
             <span style="color: #10b981; font-weight: 800; display: flex; align-items: center; gap: 6px;">
