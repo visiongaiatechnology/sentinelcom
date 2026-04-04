@@ -267,6 +267,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 | Outbound Control (STYX LITE) | ✅ | ✅ |
 | Payload Sanitizer (AIRLOCK Lite) | ✅ | ✅ |
 | Integrity Monitor (CHRONOS) | ✅ | ✅ |
+| MU-Deployer | ✅ | ✅ |
 
 ---
 
