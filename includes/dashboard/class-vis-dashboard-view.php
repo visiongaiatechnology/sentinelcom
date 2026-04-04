@@ -8,10 +8,11 @@ class VIS_Dashboard_View {
         'integrity'  => ['icon' => 'dashicons-search',     'label' => 'INTEGRITY MONITOR'],
         'aegis'      => ['icon' => 'dashicons-shield',     'label' => 'AEGIS FIREWALL'],
         'titan'      => ['icon' => 'dashicons-lock',       'label' => 'TITAN HARDENING'],
-        'airlock'    => ['icon' => 'dashicons-upload',     'label' => 'AIRLOCK GUARD'], // NEU
+        'airlock'    => ['icon' => 'dashicons-upload',     'label' => 'AIRLOCK GUARD'],
         'filesystem' => ['icon' => 'dashicons-category',   'label' => 'DATENSICHERHEIT'],
         'hades'      => ['icon' => 'dashicons-hidden',     'label' => 'HADES STEALTH'],
         'styx'       => ['icon' => 'dashicons-networking', 'label' => 'STYX CONTROL'],
+        'mudeployer' => ['icon' => 'dashicons-hammer',     'label' => 'MU DEPLOYER'], // NEU INJIZIERT
         'oracle'     => ['icon' => 'dashicons-visible',    'label' => 'ORACLE SCANNER'],
         'logs'       => ['icon' => 'dashicons-list-view',  'label' => 'SYSTEM LOGS'],
     ];
@@ -19,7 +20,8 @@ class VIS_Dashboard_View {
     public function render() {
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
         
-        // Whitelist Update: airlock hinzugefügt
+        // Whitelist Update: mudeployer ist bewusst NICHT in diesem Array, 
+        // da es einen eigenen autonomen POST-Handler im View hat und keinen "CONFIG SAVE" Button oben braucht.
         $is_config_tab = in_array($active_tab, ['aegis', 'titan', 'hades', 'styx', 'airlock']);
         
         $opt = get_option('vis_config', []); 
