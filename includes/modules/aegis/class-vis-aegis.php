@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * MODULE: AEGIS (The Shield) - OMEGA HARDENED V4.1
+ * MODULE: AEGIS (The Shield) - OMEGA HARDENED V4.2 (PLATIN STATUS)
  * Architecture: Stream-Based WAF with Memory Safety Protocols.
  * Fixes: Memory Exhaustion (DoS), Regex ReDoS Vectors, Static Asset CPU Waste.
  */
@@ -12,13 +12,14 @@ class VIS_Aegis {
     private $mode = 'strict';
     private $scan_limit = 524288; // 512KB Max Scan Limit (Defense against DoS)
     
-    // PRE-COMPILED PATTERNS (Optimized)
+    // PRE-COMPILED PATTERNS (Optimized - Possessive Quantifiers & Non-Capturing Groups)
+    // VGT HARDENING: Verhindert katastrophales Backtracking (ReDoS) durch \s*+ und \s++
     private $patterns = [
-        'rce'  => '/(system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
-        'lfi'  => '/(\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
-        'sqli' => '/(union\s+select|information_schema|waitfor\s+delay|hex\s*\(|unhex\s*\(|concat\s*\(|char\s*\(|\s+OR\s+1=1)/i',
-        'xss'  => '/(<script|javascript:|on(load|error|click|mouseover)=|base64_decode|vbscript:|data:text\/html)/i',
-        'ua' => '/(sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
+        'rce'  => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*+\(/i',
+        'lfi'  => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
+        'sqli' => '/(?:union\s++select|information_schema|waitfor\s++delay|hex\s*+\(|unhex\s*+\(|concat\s*+\(|char\s*+\(|\s++OR\s++1=1)/i',
+        'xss'  => '/(?:<script|javascript:|on(?:load|error|click|mouseover)=|base64_decode|vbscript:|data:text\/html)/i',
+        'ua'   => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
     ];
 
     public function __construct($options) {
@@ -28,6 +29,10 @@ class VIS_Aegis {
         if (!$this->enabled || $this->is_whitelisted()) {
             return;
         }
+
+        // VGT HARDENING: PCRE Limits gegen ReDoS Timeouts global für diesen Request kappen
+        ini_set('pcre.backtrack_limit', '100000');
+        ini_set('pcre.recursion_limit', '100000');
 
         $this->guard();
     }
