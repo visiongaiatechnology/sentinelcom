@@ -1,6 +1,11 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+/**
+ * CORE: DASHBOARD VIEW CONTROLLER
+ * Status: GOLD STATUS (HARDENED)
+ * Modifikation: MU-Deployer Integration (Easter Egg V7 Path)
+ */
 class VIS_Dashboard_View {
     
     private $tabs = [
@@ -8,21 +13,21 @@ class VIS_Dashboard_View {
         'integrity'  => ['icon' => 'dashicons-search',     'label' => 'INTEGRITY MONITOR'],
         'aegis'      => ['icon' => 'dashicons-shield',     'label' => 'AEGIS FIREWALL'],
         'titan'      => ['icon' => 'dashicons-lock',       'label' => 'TITAN HARDENING'],
+        'mudeployer' => ['icon' => 'dashicons-admin-network', 'label' => 'MU-DEPLOYER'], // NEU: Instanz 0 Boot
         'airlock'    => ['icon' => 'dashicons-upload',     'label' => 'AIRLOCK GUARD'],
         'filesystem' => ['icon' => 'dashicons-category',   'label' => 'DATENSICHERHEIT'],
         'hades'      => ['icon' => 'dashicons-hidden',     'label' => 'HADES STEALTH'],
         'styx'       => ['icon' => 'dashicons-networking', 'label' => 'STYX CONTROL'],
-        'mudeployer' => ['icon' => 'dashicons-hammer',     'label' => 'MU DEPLOYER'], // NEU INJIZIERT
         'oracle'     => ['icon' => 'dashicons-visible',    'label' => 'ORACLE SCANNER'],
+        'console'    => ['icon' => 'dashicons-editor-code', 'label' => 'VGT CONSOLE'],
         'logs'       => ['icon' => 'dashicons-list-view',  'label' => 'SYSTEM LOGS'],
     ];
 
     public function render() {
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
         
-        // Whitelist Update: mudeployer ist bewusst NICHT in diesem Array, 
-        // da es einen eigenen autonomen POST-Handler im View hat und keinen "CONFIG SAVE" Button oben braucht.
-        $is_config_tab = in_array($active_tab, ['aegis', 'titan', 'hades', 'styx', 'airlock']);
+        // Whitelist Update: mudeployer hinzugefügt
+        $is_config_tab = in_array($active_tab, ['aegis', 'titan', 'hades', 'styx', 'airlock', 'mudeployer']);
         
         $opt = get_option('vis_config', []); 
         
@@ -67,7 +72,7 @@ class VIS_Dashboard_View {
                     <h1>' . $label . '</h1>
                 </div>';
         
-        if (in_array($tab, ['aegis', 'titan', 'hades', 'styx', 'airlock'])) {
+        if (in_array($tab, ['aegis', 'titan', 'hades', 'styx', 'airlock', 'mudeployer'])) {
             echo '<button type="submit" name="vis_save_config" value="1" class="vis-btn vis-btn-primary">
                     <span class="dashicons dashicons-saved"></span> CONFIG SAVE
                   </button>';
