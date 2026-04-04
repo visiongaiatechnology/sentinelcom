@@ -254,6 +254,8 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 | Capability | Silber | Platin |
 |---|---|---|
 | **ORACLE AI** — Polymorphic Zero-Day Detection | ❌ | ✅ |
+| **PROMETHEUS** — Dynamic Behavioral Profiling | ❌ | ✅ |
+| **NEMESIS** — Deception-Engine | ❌ | ✅ |
 | **ZEUS** — Pre-Boot Hypervisor (TCP/Pre-Kernel intercept via `auto_prepend_file`) | ❌ | ✅ |
 | **GORGON** — Global Swarm Intelligence Threat Feed | ❌ | ✅ |
 | **Hardware Crypto** — AES-256-GCM Database Payload Encryption | ❌ | ✅ |
