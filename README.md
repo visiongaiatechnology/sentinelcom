@@ -19,6 +19,9 @@ VGT Sentinel Community Edition is a **modular, zero-dependency WordPress securit
 
 It is the open-source core of the VGT Sentinel suite — a battle-hardened, multi-layered defense system built on a **Zero-Trust architecture**. Every request is inspected, every header hardened, every upload analyzed, every file hashed.
 
+<img width="1737" height="914" alt="{1D2D5C45-A94D-4041-AE56-1791A8E40496}" src="https://github.com/user-attachments/assets/feef431e-a042-4e6c-81f3-fcbeeb6cc8b8" />
+
+
 ```
 Traditional WordPress Security:
 → Single plugin = single point of failure
@@ -87,6 +90,9 @@ STYX LITE (Outbound Control)
 
 ### ⚡ 2.1 AEGIS — Web Application Firewall
 
+<img width="1735" height="910" alt="{11C1AE23-D3BF-4E79-8E60-EB528AE623CF}" src="https://github.com/user-attachments/assets/c3261cb4-26e1-4c5e-b6a0-dd489456cc8b" />
+
+
 Stream-based WAF for real-time payload inspection.
 
 | Parameter | Value |
@@ -129,6 +135,9 @@ Protected Paths (.htaccess):
 
 Architecture obfuscation to prevent automated WordPress fingerprinting.
 
+<img width="1733" height="909" alt="{63606BBB-23A0-442C-8AAB-926015A1DB45}" src="https://github.com/user-attachments/assets/ab1b7486-37b3-4e22-b720-749675a13d8a" />
+
+
 **URL Rewrite Map:**
 
 | Original Path | Masked Path |
@@ -160,6 +169,9 @@ Pre-authentication IP validation and brute-force defense.
 
 Network-layer control against data exfiltration and supply-chain attacks.
 
+<img width="1741" height="908" alt="{6D353779-0E75-4EA0-9DA5-72DED957C004}" src="https://github.com/user-attachments/assets/9d382291-9f97-4ba2-bf63-2662341c237a" />
+
+
 ```
 Telemetry Kill Switch — Blocked Domains:
 → api.wordpress.org
@@ -175,6 +187,9 @@ Supply-Chain Protection:
 ### 🔒 2.6 AIRLOCK — Payload Sanitizer
 
 Binary-level analysis of all file uploads (`multipart/form-data`).
+
+<img width="1736" height="907" alt="{12331AA5-E93D-487F-84BD-656ADA077DF9}" src="https://github.com/user-attachments/assets/247daa1f-0901-405a-8e96-a763d1e46caa" />
+
 
 | Feature | Detail |
 |---|---|
