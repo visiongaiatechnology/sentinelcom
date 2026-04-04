@@ -125,7 +125,7 @@ $pro_modules = [
 <!-- VGT COMMUNITY GUARD: LIABILITY DISCLAIMER (SILBER STATUS) -->
 <div style="background: #0d1117; border: 1px solid #30363d; border-left: 4px solid #94a3b8; padding: 20px; margin-bottom: 25px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
     <div>
-        <span style="background: linear-gradient(90deg, #64748b, #94a3b8); color: #0f172a; padding: 4px 10px; font-weight: 800; font-size: 10px; text-transform: uppercase; border-radius: 3px; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">SILBER STATUS (COMMUNITY CORE)</span>
+        <span style="background: linear-gradient(90deg, #64748b, #94a3b8); color: #0f172a; padding: 4px 10px; font-weight: 800; font-size: 10px; text-transform: uppercase; border-radius: 3px; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">FREE STATUS (COMMUNITY CORE)</span>
         <h2 style="color: #f8fafc; margin: 0 0 5px 0; font-size: 16px; font-weight: 700;">SENTINEL OPEN SOURCE EDITION</h2>
         <p style="color: #8b949e; margin: 0; font-size: 13px; line-height: 1.5; max-width: 800px;">
             <strong>WARNUNG:</strong> Diese Version arbeitet mit deterministischer DFA-Logik. Kognitive KI-Inference, Swarm-Intelligence und Pre-Boot Abwehrmechanismen sind deaktiviert. Keine Haftung für Systemkompromittierungen durch polymorphe Zero-Day-Exploits. Diese Version ist eine ultra Lite Version der V7 und nicht vergleichbar mit der Abwehrkraft von VGT Sentinel Pro.
