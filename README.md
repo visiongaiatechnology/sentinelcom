@@ -272,7 +272,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 ```bash
 # 1. Clone into WordPress plugins directory
 cd /var/www/html/wp-content/plugins/
-git clone https://github.com/visiongaiatechnology/vgt-sentinel
+git clone [https://github.com/visiongaiatechnology/vgt-sentinel](https://github.com/visiongaiatechnology/sentinelcom)
 
 # 2. Activate in WordPress Admin
 # Plugins → VGT Sentinel Community Edition → Activate
