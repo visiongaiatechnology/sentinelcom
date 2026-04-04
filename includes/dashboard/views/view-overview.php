@@ -1,4 +1,5 @@
 <?php 
+declare(strict_types=1);
 if (!defined('ABSPATH')) exit; 
 global $wpdb;
 
@@ -29,6 +30,13 @@ $core_modules = [
         'active' => !empty($opt['hades_enabled']),
         'desc'   => 'Camouflage & Obfuscation',
         'link'   => '?page=vis-sentinel&tab=hades'
+    ],
+    [
+        'label'  => 'MU DEPLOYER',
+        'icon'   => 'dashicons-hammer',
+        'active' => file_exists((defined('WPMU_PLUGIN_DIR') ? WPMU_PLUGIN_DIR : WP_CONTENT_DIR . '/mu-plugins') . '/0-vgt-sentinel-loader.php'),
+        'desc'   => 'Pre-Boot Loader',
+        'link'   => '?page=vis-sentinel&tab=mudeployer'
     ],
     [
         'label'  => 'CERBERUS GUARD',

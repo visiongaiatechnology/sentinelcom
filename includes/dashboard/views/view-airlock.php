@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // Redundante Daten-Extraktion (O(1) Fallback)

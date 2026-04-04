@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- AUTONOME SPEICHER-LOGIK (O(1) STATE MUTATION) ---

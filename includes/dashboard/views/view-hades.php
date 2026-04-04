@@ -1,4 +1,5 @@
 <?php 
+declare(strict_types=1);
 if (!defined('ABSPATH')) exit; 
 
 // Initialisiere Hades um Nginx Rules zu holen (falls nötig)

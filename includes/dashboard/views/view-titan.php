@@ -1,4 +1,6 @@
-<?php if (!defined('ABSPATH')) exit; ?>
+<?php 
+declare(strict_types=1);
+if (!defined('ABSPATH')) exit; ?>
 
 <div class="vis-card">
     <h3><span class="dashicons dashicons-lock"></span> KERNEL HÄRTUNG & .HTACCESS</h3>

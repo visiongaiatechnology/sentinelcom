@@ -1,4 +1,6 @@
-<?php if (!defined('ABSPATH')) exit; 
+<?php 
+declare(strict_types=1);
+if (!defined('ABSPATH')) exit; 
 $oracle = new VIS_Oracle();
 $res = $oracle->run_prophecy();
 ?>

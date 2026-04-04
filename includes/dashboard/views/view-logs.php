@@ -1,4 +1,7 @@
-<?php if (!defined('ABSPATH')) exit; 
+<?php 
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) exit; 
 global $wpdb;
 $logs = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . VIS_TABLE_LOGS . " ORDER BY id DESC LIMIT 50");
 ?>

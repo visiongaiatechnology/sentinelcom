@@ -1,4 +1,7 @@
-<?php if (!defined('ABSPATH')) exit; 
+<?php 
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) exit; 
 $guard = new VIS_Filesystem_Guard();
 $files = $guard->scan_permissions();
 ?>

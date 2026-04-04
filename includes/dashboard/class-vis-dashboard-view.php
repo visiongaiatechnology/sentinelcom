@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 /**
@@ -18,8 +19,8 @@ class VIS_Dashboard_View {
         'filesystem' => ['icon' => 'dashicons-category',   'label' => 'DATENSICHERHEIT'],
         'hades'      => ['icon' => 'dashicons-hidden',     'label' => 'HADES STEALTH'],
         'styx'       => ['icon' => 'dashicons-networking', 'label' => 'STYX CONTROL'],
-        'oracle'     => ['icon' => 'dashicons-visible',    'label' => 'ORACLE SCANNER'],
-        'console'    => ['icon' => 'dashicons-editor-code', 'label' => 'VGT CONSOLE'],
+        'oracle'     => ['icon' => 'dashicons-list-view',    'label' => 'ORACLE SCANNER'],
+        'console'    => ['icon' => 'dashicons-editor-code', 'label' => 'VGT CONSOLE'], // NEU: Terminal Easter Egg
         'logs'       => ['icon' => 'dashicons-list-view',  'label' => 'SYSTEM LOGS'],
     ];
 

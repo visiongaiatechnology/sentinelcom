@@ -1,4 +1,6 @@
-<?php if (!defined('ABSPATH')) exit; 
+<?php 
+declare(strict_types=1);
+if (!defined('ABSPATH')) exit; 
 
 // REPORT LADEN
 $report = get_option('vis_scan_report', false);

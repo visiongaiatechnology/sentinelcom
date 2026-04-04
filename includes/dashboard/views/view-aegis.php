@@ -1,4 +1,7 @@
-<?php if (!defined('ABSPATH')) exit; ?>
+<?php 
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) exit; ?>
 
 <div class="vis-card">
     <h3 style="color:var(--vis-accent);">AEGIS FIREWALL MATRIX</h3>

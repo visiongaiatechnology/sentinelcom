@@ -8,7 +8,7 @@
  * License: AGPLv3
  * Requires PHP: 7.4
  */
-
+declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- SYSTEM KONSTANTEN ---
