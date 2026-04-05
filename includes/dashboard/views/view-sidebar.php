@@ -5,9 +5,53 @@ if (!defined('ABSPATH')) exit;
  * SIDEBAR VIEW: COMMUNITY CORE EDITION
  * Status: PLATIN STATUS
  * Logic: Dynamische Iteration über Controller-Tabs. Minimale DOM-Last.
- * Fix: Footer-Offset +10px zur Vermeidung von Overflow.
+ * Fix: Adaptive Flexbox Architecture + Custom UI Scrollbar
  */
 ?>
+
+<!-- VGT ADAPTIVE SIDEBAR CSS (ZERO-DEPENDENCY) -->
+<style>
+    /* Erzwingt das Flex-Grid auf der Sidebar, um den verbleibenden Platz zu berechnen */
+    .vis-sidebar {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100vh; /* Adaptiv zur Viewport-Höhe */
+        max-height: 100vh;
+        overflow: hidden; /* Verhindert globalen Sidebar-Overflow */
+    }
+
+    /* Schützt Header und Footer vor dem Zusammendrücken */
+    .vis-brand { flex-shrink: 0; }
+    .vis-sidebar-footer { flex-shrink: 0; }
+
+    /* Nav-Bereich dynamisch expandieren lassen und Scrolling isolieren */
+    .vis-nav {
+        flex-grow: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* Firefox Scrollbar UI */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
+        padding-right: 2px; /* Verhindert, dass der Text am Scrollbar klebt */
+    }
+
+    /* Webkit (Chrome, Safari, Edge) Custom Scrollbar UI - PLATIN STANDARD */
+    .vis-nav::-webkit-scrollbar {
+        width: 4px;
+    }
+    .vis-nav::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .vis-nav::-webkit-scrollbar-thumb {
+        background: rgba(6, 182, 212, 0.2);
+        border-radius: 10px;
+        transition: background 0.3s ease;
+    }
+    .vis-nav::-webkit-scrollbar-thumb:hover {
+        background: rgba(6, 182, 212, 0.6);
+    }
+</style>
+
 <aside class="vis-sidebar">
     <!-- BRANDING SECTION -->
     <div class="vis-brand">
@@ -22,7 +66,7 @@ if (!defined('ABSPATH')) exit;
         </div>
     </div>
 
-    <!-- DYNAMISCHE NAVIGATION -->
+    <!-- DYNAMISCHE NAVIGATION (SCROLLABLE AREA) -->
     <nav class="vis-nav">
         <?php 
         // Wir nutzen die im Controller (class-vis-dashboard-view.php) 
@@ -48,8 +92,8 @@ if (!defined('ABSPATH')) exit;
     </nav>
     
     <!-- SYSTEM STATUS FOOTER (VGT ZERO-DEPENDENCY UI) -->
-    <!-- FIX: margin-bottom: 10px sorgt für den nötigen Abstand zum unteren Rand -->
-    <div style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: #020617; margin-bottom: 10px; border-radius: 0 0 8px 8px;">
+    <!-- FIX: vis-sidebar-footer Klasse hinzugefügt für O(1) Flex-Shrink Protection -->
+    <div class="vis-sidebar-footer" style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: #020617; margin-bottom: 10px; border-radius: 0 0 8px 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px; font-family: monospace;">
             <span style="color: #64748b; font-weight: 700; letter-spacing: 0.5px;">STATUS</span>
             <span style="color: #10b981; font-weight: 800; display: flex; align-items: center; gap: 6px;">
