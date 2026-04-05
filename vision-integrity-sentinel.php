@@ -2,7 +2,7 @@
 /**
  * Plugin Name: VGT Sentinel
  * Description: Community Edition
- * Version: 1.0.0 COMPATIBILITY LAYER
+ * Version: 1.1.0 APEX CORE
  * Author: VisionGaiaTechnology
  * Author URI: https://visiongaiatechnology.de
  * License: AGPLv3
@@ -12,7 +12,7 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- SYSTEM KONSTANTEN ---
-define('VIS_VERSION', '1.0.0');
+define('VIS_VERSION', '1.1.0');
 define('VIS_PATH', plugin_dir_path(__FILE__));
 define('VIS_URL', plugin_dir_url(__FILE__));
 
@@ -29,7 +29,10 @@ spl_autoload_register(function ($class) {
     if (strpos($class, 'VIS_') !== 0) return;
 
     $map = [
-        // Core Modules
+        // Core Logic
+        'VIS_Network'               => 'includes/core/class-vis-network.php',
+        
+        // Security Modules
         'VIS_Scanner_Engine'        => 'includes/scanner/class-vis-scanner-engine.php',
         'VIS_Aegis'                 => 'includes/modules/aegis/class-vis-aegis.php',
         'VIS_Titan'                 => 'includes/modules/titan/class-vis-titan.php',
@@ -41,10 +44,12 @@ spl_autoload_register(function ($class) {
         'VIS_Cerberus'              => 'includes/modules/cerberus/class-vis-cerberus.php',
         'VIS_Styx_Lite'             => 'includes/modules/styx/class-vis-styx-lite.php',
         'VIS_Filesystem_Guard'      => 'includes/modules/filesystem/class-vis-filesystem-guard.php',
+        
         // UI
         'VIS_Dashboard_Core'        => 'includes/dashboard/class-vis-dashboard-core.php',
         'VIS_Dashboard_View'        => 'includes/dashboard/class-vis-dashboard-view.php',
-        // Compatibility Layer (NEU)
+        
+        // Compatibility Layer
         'VIS_Compatibility_Manager' => 'includes/compatibility/class-vis-compatibility-manager.php',
     ];
 
@@ -104,11 +109,11 @@ register_deactivation_hook(__FILE__, function() {
 add_action('plugins_loaded', function() {
     $options = get_option('vis_config', []);
 
-    // 1. Compatibility Layer (First Line)
+    // 1. Compatibility Layer
     new VIS_Compatibility_Manager();
 
     // 2. Security Modules
-    new VIS_Aegis($options);
+    new VIS_Aegis($options); 
     new VIS_Titan($options);
     new VIS_Hades($options);
     new VIS_Styx_Lite($options);

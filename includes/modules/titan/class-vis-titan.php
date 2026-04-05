@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit;
 /**
  * MODULE: TITAN (The Strength) - OMEGA REVISION 2.3
  * Status: PLATIN STATUS
- * Updates: Multi-Layer Header Injection + Camouflage Engine (Meta & Source Cleanup).
+ * Updates: Multi-Layer Header Injection + V7 Camouflage Engine (Meta & Source Cleanup).
  */
 class VIS_Titan {
 

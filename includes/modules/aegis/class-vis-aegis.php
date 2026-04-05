@@ -6,8 +6,9 @@ if (!defined('ABSPATH')) exit;
  * MODULE: AEGIS (The Shield) - OMEGA PLATINUM REWRITE (CE CORE)
  * STATUS: PLATIN STATUS
  * KOGNITIVE UPGRADES:
- * - O(1) Cloudflare CIDR Validation für absoluten IP-Spoofing-Schutz.
+ * - O(1) Cloudflare CIDR Validation für absoluten IP-Spoofing-Schutz (via VIS_Network Kernel).
  * - Multi-Byte Boundary-Safe Stream Inspection (verhindert Payload-Splitting).
+ * - Double-Decode Protection gegen WAF-Evasion.
  * - Strict Memory Management via expliziten Garbage Collection Triggers.
  */
 class VIS_Aegis {
@@ -17,14 +18,6 @@ class VIS_Aegis {
     private int $scan_limit = 524288; // 512KB Max Stream Scan
     private string $validated_ip;
 
-    // KERNEL-CACHE FÜR CLOUDFLARE IPv4 CIDR (Hardcoded für O(1) Lookup Speed)
-    private array $cf_ipv4 = [
-        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
-        '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
-        '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
-        '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'
-    ];
-    
     private array $patterns = [
         'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*+\(/i',
         'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
@@ -46,7 +39,8 @@ class VIS_Aegis {
         ini_set('pcre.backtrack_limit', '100000');
         ini_set('pcre.recursion_limit', '100000');
 
-        $this->validated_ip = $this->resolve_true_ip();
+        // VGT DRY KERNEL: Zentralisierte IP Resolution
+        $this->validated_ip = VIS_Network::resolve_true_ip();
         $this->guard();
     }
 
@@ -85,8 +79,8 @@ class VIS_Aegis {
             // Konkateniere Rest des vorherigen Chunks mit aktuellem Chunk (Verhindert Evasion an der 8KB-Grenze)
             $raw_payload = $overlap_buffer . $chunk;
             
-            // Boundary-Safe Decoding
-            $decoded_payload = urldecode($raw_payload);
+            // Boundary-Safe Decoding (VGT UPDATE: Double-Decode gegen Evasion)
+            $decoded_payload = urldecode(urldecode($raw_payload));
 
             foreach ($this->patterns as $type => $regex) {
                 if ($type === 'ua') continue;
@@ -133,43 +127,6 @@ class VIS_Aegis {
                  $this->terminate("Threat Vector [$type] detected in URI.", 'BLOCK', $type);
             }
         }
-    }
-
-    /**
-     * ZERO-TRUST IP RESOLUTION (Anti-Spoofing Engine)
-     * Verhindert das Umgehen von Bans durch gefälschte CF-Header.
-     */
-    private function resolve_true_ip(): string {
-        $remote_addr = (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
-        
-        if (!isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-            return filter_var($remote_addr, FILTER_VALIDATE_IP) ? $remote_addr : '0.0.0.0';
-        }
-
-        // Falls CF-Connecting-IP gesetzt ist, zwingende Prüfung ob Request physisch von CF kommt
-        if ($this->is_cloudflare_ip($remote_addr)) {
-            $cf_ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-            return filter_var($cf_ip, FILTER_VALIDATE_IP) ? $cf_ip : $remote_addr;
-        }
-
-        // IP-Spoofing Versuch erkannt. Wir verwerfen den Header und nutzen die echte Remote-IP.
-        return filter_var($remote_addr, FILTER_VALIDATE_IP) ? $remote_addr : '0.0.0.0';
-    }
-
-    private function is_cloudflare_ip(string $ip): bool {
-        if (strpos($ip, ':') !== false) return false; // CE fokussiert sich auf IPv4
-
-        $ip_long = ip2long($ip);
-        if ($ip_long === false) return false;
-
-        foreach ($this->cf_ipv4 as $cidr) {
-            [$subnet, $bits] = explode('/', $cidr);
-            $mask = -1 << (32 - (int)$bits);
-            if (($ip_long & $mask) === (ip2long($subnet) & $mask)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private function engage_ban_protocol(string $reason): void {
