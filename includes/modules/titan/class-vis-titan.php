@@ -3,9 +3,9 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 /**
- * MODULE: TITAN (The Strength) - OMEGA REVISION 2.1
- * Status: HARDENED
- * Updates: Blocks access to Vault and Version Control Systems via .htaccess
+ * MODULE: TITAN (The Strength) - OMEGA REVISION 2.3
+ * Status: PLATIN STATUS
+ * Updates: Multi-Layer Header Injection + Camouflage Engine (Meta & Source Cleanup).
  */
 class VIS_Titan {
 
@@ -17,8 +17,9 @@ class VIS_Titan {
 
         if (empty($options['titan_enabled'])) return;
 
-        add_action('send_headers', [$this, 'manage_headers']);
-        add_filter('wp_headers', [$this, 'filter_wp_headers']);
+        // VGT OMEGA: Multi-Layer Header Engine
+        add_action('init', [$this, 'inject_global_headers'], 9999);
+        add_filter('wp_headers', [$this, 'filter_wp_headers'], 9999);
 
         if (!defined('DISALLOW_FILE_EDIT')) {
             define('DISALLOW_FILE_EDIT', true);
@@ -27,10 +28,16 @@ class VIS_Titan {
         $this->enforce_protocols();
         add_action('init', [$this, 'block_sensitive_files']);
 
-        // Cleanup
-        remove_action('wp_head', 'wp_generator');
-        remove_action('wp_head', 'wlwmanifest_link');
-        remove_action('wp_head', 'rsd_link');
+        // VGT SUPREME: Advanced Camouflage & Source Cleanup
+        add_action('init', [$this, 'source_cleanup'], 20);
+        add_action('wp_head', [$this, 'inject_cms_meta'], 1);
+
+        // Verbergen der WP Version in Assets (Wenn Camouflage oder Hide_Version aktiv)
+        $fake_tech = $this->options['titan_camouflage_mode'] ?? 'none';
+        if (!empty($this->options['titan_hide_version']) || $fake_tech !== 'none') {
+            add_filter('style_loader_src', [$this, 'remove_ver_string'], 9999);
+            add_filter('script_loader_src', [$this, 'remove_ver_string'], 9999);
+        }
 
         if (!empty($options['titan_disable_feeds'])) {
             $this->disable_feeds();
@@ -42,34 +49,129 @@ class VIS_Titan {
         }
     }
 
-    public function manage_headers() {
+    /**
+     * LAYER 1: PHP Runtime Injection (Greift bei dynamischen Requests)
+     */
+    public function inject_global_headers() {
         if (headers_sent()) return;
 
-        header('X-XSS-Protection: 1; mode=block');
-        header('X-Frame-Options: SAMEORIGIN');
-        header('X-Content-Type-Options: nosniff');
-        header('Referrer-Policy: strict-origin-when-cross-origin');
-        header('Permissions-Policy: geolocation=(), camera=(), microphone=()'); // New: Feature Policy
+        // Hard Override (true = replace)
+        header('X-XSS-Protection: 1; mode=block', true);
+        header('X-Frame-Options: SAMEORIGIN', true);
+        header('X-Content-Type-Options: nosniff', true);
+        header('Referrer-Policy: strict-origin-when-cross-origin', true);
+        header('Permissions-Policy: geolocation=(), camera=(), microphone=()', true);
         
-        $fake_tech = $this->options['titan_camouflage_mode'] ?? 'none';
-        
-        header_remove('X-Powered-By'); 
-        header_remove('X-Pingback');
+        // Phantom Mode: Signature Wipe
+        if (function_exists('header_remove')) {
+            header_remove('X-Powered-By'); 
+            header_remove('X-Pingback');
+        }
 
-        switch ($fake_tech) {
-            case 'laravel':
-                header('X-Powered-By: Laravel'); break;
-            case 'drupal':
-                header('X-Powered-By: Drupal 9'); break;
-            case 'django':
-                header('X-Powered-By: Django/4.2'); break;
+        $fake_tech = $this->options['titan_camouflage_mode'] ?? 'none';
+        if ($fake_tech !== 'none') {
+            $map = [
+                'laravel' => 'Laravel',
+                'drupal'  => 'Drupal 9',
+                'django'  => 'Django/4.2',
+                'joomla'  => 'Joomla!'
+            ];
+            if (isset($map[$fake_tech])) {
+                header('X-Powered-By: ' . $map[$fake_tech], true);
+            }
         }
     }
 
+    /**
+     * LAYER 2: WP Core Injection (Zwingt WordPress, die Header nativ zu senden)
+     */
     public function filter_wp_headers($headers) {
-        unset($headers['X-Pingback']);
-        unset($headers['X-Powered-By']);
+        // Wipe WP Defaults
+        if (isset($headers['X-Pingback'])) unset($headers['X-Pingback']);
+        if (isset($headers['X-Powered-By'])) unset($headers['X-Powered-By']);
+        
+        // Inject VGT Headers
+        $headers['X-XSS-Protection'] = '1; mode=block';
+        $headers['X-Frame-Options']  = 'SAMEORIGIN';
+        $headers['X-Content-Type-Options'] = 'nosniff';
+        $headers['Referrer-Policy']  = 'strict-origin-when-cross-origin';
+        $headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=()';
+        
+        $fake_tech = $this->options['titan_camouflage_mode'] ?? 'none';
+        if ($fake_tech !== 'none') {
+            $map = [
+                'laravel' => 'Laravel',
+                'drupal'  => 'Drupal 9',
+                'django'  => 'Django/4.2',
+                'joomla'  => 'Joomla!'
+            ];
+            if (isset($map[$fake_tech])) {
+                $headers['X-Powered-By'] = $map[$fake_tech];
+            }
+        }
+
         return $headers;
+    }
+
+    /**
+     * CMS EMULATION (META INJECTION)
+     */
+    public function inject_cms_meta(): void {
+        $fake_tech = $this->options['titan_camouflage_mode'] ?? 'none';
+        
+        $meta = '';
+        if ($fake_tech === 'drupal') {
+            $meta = '<meta name="generator" content="Drupal 9 (https://www.drupal.org)" />' . "\n" .
+                    '<meta name="MobileOptimized" content="width" />' . "\n" .
+                    '<meta name="HandheldFriendly" content="true" />';
+        } elseif ($fake_tech === 'joomla') {
+            $meta = '<meta name="generator" content="Joomla! - Open Source Content Management" />';
+        }
+
+        if ($meta) {
+            echo "\n<!-- VGT_OS Camouflage -->\n" . $meta . "\n";
+        }
+    }
+
+    /**
+     * ANTI-RECONNAISSANCE: VERSION STRIPPING & CLEANUP
+     */
+    public function source_cleanup(): void {
+        // Core WP Meta Links entfernen
+        $actions = ['wp_generator', 'wlwmanifest_link', 'rsd_link', 'wp_shortlink_wp_head', 'rest_output_link_wp_head'];
+        foreach ($actions as $action) remove_action('wp_head', $action);
+        remove_action('template_redirect', 'rest_output_link_header', 11);
+
+        // Emoji Cleanup
+        if (!empty($this->options['titan_cleanup_emojis'])) {
+            remove_action('wp_head', 'print_emoji_detection_script', 7);
+            remove_action('wp_print_styles', 'print_emoji_styles');
+            remove_filter('the_content_feed', 'wp_staticize_emoji');
+            remove_filter('comment_text_rss', 'wp_staticize_emoji');
+            add_filter('emoji_svg_url', '__return_false');
+        }
+
+        // Embed Cleanup
+        if (!empty($this->options['titan_cleanup_embeds'])) {
+            remove_action('rest_api_init', 'wp_oembed_register_route');
+            remove_filter('oembed_dataparse', 'wp_filter_oembed_result');
+            remove_action('wp_head', 'wp_oembed_add_discovery_links');
+            add_filter('embed_oembed_discover', '__return_false');
+        }
+    }
+
+    /**
+     * VGT SUPREME: Type-Safe URL Parameter Stripping
+     */
+    public function remove_ver_string($src) {
+        if (!is_string($src) || empty($src)) {
+            return $src;
+        }
+        
+        if (strpos($src, 'ver=') !== false) {
+            $src = remove_query_arg('ver', $src);
+        }
+        return $src;
     }
 
     private function enforce_protocols() {
@@ -125,23 +227,44 @@ class VIS_Titan {
         $pattern = "/".preg_quote($start_marker, '/').".*?".preg_quote($end_marker, '/')."/s";
         $clean_content = preg_replace($pattern, '', $current_content);
         
-        $new_content = $start_marker . "\n" . $rules . "\n" . $end_marker . "\n" . trim($clean_content);
+        $new_content = $start_marker . "\n" . $rules . "\n" . $end_marker . "\n" . trim((string)$clean_content);
         file_put_contents($htaccess_path, $new_content);
     }
 
+    /**
+     * LAYER 3: Server Environment Injection (.htaccess)
+     */
     private function generate_htaccess_rules() {
         $rules = "";
         
         $rules .= "<IfModule mod_headers.c>\n";
+        // Core Security Headers
         $rules .= "Header set X-XSS-Protection \"1; mode=block\"\n";
         $rules .= "Header set X-Frame-Options \"SAMEORIGIN\"\n";
         $rules .= "Header set X-Content-Type-Options \"nosniff\"\n";
-        $rules .= "</IfModule>\n";
+        $rules .= "Header set Referrer-Policy \"strict-origin-when-cross-origin\"\n";
+        $rules .= "Header set Permissions-Policy \"geolocation=(), camera=(), microphone=()\"\n";
+        
+        // Signature Wipe (Apache Layer)
+        $rules .= "Header unset X-Powered-By\n";
+        $rules .= "Header unset X-Pingback\n";
+        
+        // Camouflage (Apache Layer)
+        $fake_tech = $this->options['titan_camouflage_mode'] ?? 'none';
+        if ($fake_tech === 'laravel') {
+            $rules .= "Header set X-Powered-By \"Laravel\"\n";
+        } elseif ($fake_tech === 'drupal') {
+            $rules .= "Header set X-Powered-By \"Drupal 9\"\n";
+        } elseif ($fake_tech === 'django') {
+            $rules .= "Header set X-Powered-By \"Django/4.2\"\n";
+        } elseif ($fake_tech === 'joomla') {
+            $rules .= "Header set X-Powered-By \"Joomla!\"\n";
+        }
+        $rules .= "</IfModule>\n\n";
 
         $rules .= "Options -Indexes\n";
 
         // HARDENING: Block Sensitive Files Regex
-        // Includes: .env, .git, .htaccess, composer.json, debug.log, and the Vault
         $rules .= "<FilesMatch \"^.*(error_log|wp-config\.php|php\.ini|\.[hH][tT]|composer\.json|\.env|\.git|vis-vault-omega)[a-zA-Z0-9_]*$\">\n";
         $rules .= "Order deny,allow\n";
         $rules .= "Deny from all\n";
