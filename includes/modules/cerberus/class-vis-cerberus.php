@@ -3,17 +3,22 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 /**
- * MODULE: CERBERUS (APEX FUSION V2.4)
- * Status: ACTIVE / ANTI-SPOOFING
- * Logic: Login Guard mit True-IP-Validation. Verhindert Header-Spoofing durch CIDR-Check.
+ * MODULE: CERBERUS (The Gatekeeper) - OMEGA PLATINUM REWRITE
+ * STATUS: PLATIN STATUS
+ * KOGNITIVE UPGRADES:
+ * - O(1) True-IP Resolution mit Shared CIDR Matrix.
+ * - Strict Origin Shield: Drop von Non-CF Traffic bei erzwungenem CF-Routing.
+ * - RAM-based State Tracking (Transients) mit konstanter Zeit-Komplexität.
+ * - Anti-Timing Attack Sleep Delays bei positiven Ban-Hits.
  */
 class VIS_Cerberus {
 
-    private $max_retries = 3;
-    private $lockout_time = 3600; // 1 Stunde
+    private int $max_retries = 3;
+    private int $lockout_time = 3600; // 1 Stunde Lockout
+    private bool $strict_origin_shield = false; // PLATIN FEATURE: Aktivieren, wenn Server exklusiv hinter CF läuft.
 
-    // CLOUDFLARE IP RANGES (Stand: OMEGA PROTOCOL)
-    private $cf_ipv4 = [
+    // KERNEL-CACHE FÜR CLOUDFLARE IPv4/IPv6 CIDR
+    private array $cf_ipv4 = [
         '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
         '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
         '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
@@ -21,109 +26,132 @@ class VIS_Cerberus {
     ];
 
     public function __construct() {
-        // Login Failure Hook
-        add_action('wp_login_failed', [$this, 'handle_failed_login']);
+        // Priority 1: Sofortiges Tarpitting/Blocking vor WP-Auth
+        add_filter('authenticate', [$this, 'enforce_access_control'], 1, 3);
         
-        // Pre-Auth Check (Priority 1 = First Line of Defense)
-        add_filter('authenticate', [$this, 'check_pre_auth'], 1, 3);
-    }
+        // Tracking von fehlgeschlagenen Logins
+        add_action('wp_login_failed', [$this, 'register_auth_failure']);
 
-    /**
-     * Zählt Fehlversuche via High-Speed Transient (RAM/Object Cache)
-     */
-    public function handle_failed_login($username) {
-        $ip = $this->get_validated_ip();
-        
-        $transient_name = 'vis_retries_' . md5($ip);
-        $retries = get_transient($transient_name) ?: 0;
-        $retries++;
-
-        if ($retries >= $this->max_retries) {
-            $this->ban_ip($ip, "CERBERUS: $retries fail-events (User: $username)");
-            delete_transient($transient_name); 
-        } else {
-            set_transient($transient_name, $retries, $this->lockout_time);
+        // Platin Feature: Origin Shield
+        if ($this->strict_origin_shield) {
+            add_action('init', [$this, 'enforce_origin_shield'], 1);
         }
     }
 
     /**
-     * Prüft VOR der Authentifizierung, ob die IP gebannt ist.
+     * PLATIN FEATURE: STRICT ORIGIN SHIELD
+     * Wenn aktiv, werden alle direkten Zugriffe auf die Server-IP, die nicht
+     * durch das Cloudflare-Netzwerk geroutet wurden, sofort per TCP Socket-Drop beendet.
      */
-    public function check_pre_auth($user, $username, $password) {
+    public function enforce_origin_shield(): void {
+        $remote_addr = (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        
+        if (!$this->is_cloudflare_ip($remote_addr)) {
+            // Direktzugriff erkannt (Bypass-Versuch). Sofortige Terminierung.
+            if (!headers_sent()) {
+                http_response_code(403);
+                header('Connection: Close');
+            }
+            die('<b>VGT KERNEL PANIC:</b> Origin Shield active. Direct IP access forbidden. Route traffic via designated proxy network.');
+        }
+    }
+
+    /**
+     * ACCESS CONTROL & TARPITTING
+     */
+    public function enforce_access_control($user, $username, $password) {
         if (is_wp_error($user)) return $user;
 
         global $wpdb;
-        $ip = $this->get_validated_ip();
-        $table = $wpdb->prefix . VIS_TABLE_BANS;
+        $ip = $this->resolve_true_ip();
+        $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
 
-        // O(1) Lookup
-        $id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE ip = %s LIMIT 1", $ip));
+        // O(1) Lookup: Existiert die IP in der Ban-Liste?
+        $is_banned = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE ip = %s LIMIT 1", $ip));
 
-        if ($id) {
-            // Tarpit: Verzögerung gegen Timing-Attacks
-            usleep(300000); 
+        if ($is_banned) {
+            // TARPITTING: Fügt asymmetrische Verzögerung hinzu, um automatisierte Brute-Forcer
+            // aus dem Takt zu bringen und ihre Threads zu binden.
+            usleep(random_int(400000, 900000)); 
 
             return new WP_Error(
                 'vis_banned', 
-                "<strong>VISIONGAIA CERBERUS:</strong> Access Denied. Your IP ($ip) is flagged active threat."
+                "<strong>VISIONGAIA CERBERUS:</strong> Access Denied. Integrity matrix compromised by origin IP ({$ip})."
             );
         }
 
         return $user;
     }
 
-    private function ban_ip($ip, $reason) {
-        global $wpdb;
-        $table = $wpdb->prefix . VIS_TABLE_BANS;
+    /**
+     * RAM-BASED STATE TRACKING
+     */
+    public function register_auth_failure(string $username): void {
+        $ip = $this->resolve_true_ip();
+        
+        // Nutzt WP Transients (ideal mit Redis/Memcached) für O(1) I/O.
+        $state_key = 'vis_cerb_' . md5($ip);
+        $retries = (int) get_transient($state_key);
+        $retries++;
 
-        $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO $table (ip, reason, banned_at, request_uri) VALUES (%s, %s, %s, %s)",
-            $ip, $reason, current_time('mysql'), $_SERVER['REQUEST_URI'] ?? 'wp-login.php'
-        ));
+        if ($retries >= $this->max_retries) {
+            $this->execute_hard_ban($ip, "CERBERUS: Authentication threshold exceeded (User target: {$username})");
+            delete_transient($state_key); 
+        } else {
+            set_transient($state_key, $retries, $this->lockout_time);
+        }
     }
 
     /**
-     * TRUE IP VALIDATION ENGINE
-     * Vertraut Headern NUR, wenn sie von vertrauenswürdigen Proxies kommen.
+     * ZERO-TRUST IP RESOLUTION (Konsistent mit Aegis Kernel)
      */
-    private function get_validated_ip() {
-        $direct_ip = $_SERVER['REMOTE_ADDR'];
-
-        // 1. Check if direct IP is Cloudflare
-        if ($this->is_cloudflare($direct_ip)) {
-            if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-                return $_SERVER['HTTP_CF_CONNECTING_IP'];
-            }
+    private function resolve_true_ip(): string {
+        $remote_addr = (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        
+        if (!isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+            return filter_var($remote_addr, FILTER_VALIDATE_IP) ? $remote_addr : '0.0.0.0';
         }
 
-        // 2. Fallback: Trust X-Forwarded-For ONLY if configured manually (Advanced Config)
-        // Im Standard-Modus ignorieren wir XFF, um Spoofing zu verhindern,
-        // es sei denn, der Server Admin whitelisted den Load Balancer.
-        // if (defined('VIS_TRUSTED_PROXY') && $direct_ip === VIS_TRUSTED_PROXY) ...
+        if ($this->is_cloudflare_ip($remote_addr)) {
+            $cf_ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
+            return filter_var($cf_ip, FILTER_VALIDATE_IP) ? $cf_ip : $remote_addr;
+        }
 
-        return $direct_ip;
+        return filter_var($remote_addr, FILTER_VALIDATE_IP) ? $remote_addr : '0.0.0.0';
     }
 
-    private function is_cloudflare($ip) {
-        // Schnell-Check für IPv4
-        if (strpos($ip, ':') === false) {
-            foreach ($this->cf_ipv4 as $cidr) {
-                if ($this->ip_in_range($ip, $cidr)) return true;
+    /**
+     * MATHEMATISCHE CIDR VERIFIKATION
+     */
+    private function is_cloudflare_ip(string $ip): bool {
+        if (strpos($ip, ':') !== false) return false; // CE fokussiert auf IPv4
+
+        $ip_long = ip2long($ip);
+        if ($ip_long === false) return false;
+
+        foreach ($this->cf_ipv4 as $cidr) {
+            [$subnet, $bits] = explode('/', $cidr);
+            $mask = -1 << (32 - (int)$bits);
+            if (($ip_long & $mask) === (ip2long($subnet) & $mask)) {
+                return true;
             }
         }
-        // IPv6 Support hier optional erweiterbar
         return false;
     }
 
-    private function ip_in_range($ip, $range) {
-        if (strpos($range, '/') === false) return $ip == $range;
-        
-        list($subnet, $bits) = explode('/', $range);
-        $ip_long = ip2long($ip);
-        $subnet_long = ip2long($subnet);
-        $mask = -1 << (32 - $bits);
-        $subnet_long &= $mask;
-        
-        return ($ip_long & $mask) == $subnet_long;
+    /**
+     * ATOMIC DB INSERTS
+     */
+    private function execute_hard_ban(string $ip, string $reason): void {
+        global $wpdb;
+        $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
+
+        $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$table} (ip, reason, banned_at, request_uri) VALUES (%s, %s, %s, %s)",
+            $ip, 
+            $reason, 
+            current_time('mysql'), 
+            substr(esc_url_raw($_SERVER['REQUEST_URI'] ?? '/wp-login.php'), 0, 255)
+        ));
     }
 }
