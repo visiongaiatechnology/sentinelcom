@@ -75,9 +75,7 @@ $opt = get_option('vis_config', []);
                 <!-- O(1) Form Integrity: Options are bilingual to prevent duplicate name attributes in DOM -->
                 <select name="vis_config[titan_camouflage_mode]">
                     <option value="none" <?php selected($opt['titan_camouflage_mode'] ?? '', 'none'); ?>>Deaktiviert | Disabled (Default)</option>
-                    <option value="laravel" <?php selected($opt['titan_camouflage_mode'] ?? '', 'laravel'); ?>>Laravel Framework </option>
                     <option value="drupal" <?php selected($opt['titan_camouflage_mode'] ?? '', 'drupal'); ?>>Drupal CMS (Recommended)</option>
-                    <option value="django" <?php selected($opt['titan_camouflage_mode'] ?? '', 'django'); ?>>Django (Python)</option>
                 </select>
             </div>
         </div>
