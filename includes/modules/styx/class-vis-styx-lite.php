@@ -4,9 +4,9 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * MODULE: STYX LITE (Outbound Telemetry Control)
- * Status: PLATIN STATUS
- * Logic: Kappt native WordPress-Telemetrie auf Netzwerkebene durch Phantom-Responses.
- * Fix: Eliminierung von Core-Warnings im Debug-Log durch HTTP 200 Simulation.
+ * Status: DIAMANT VGT SUPREME
+ * Logic: Kappt native WordPress-Telemetrie auf Netzwerkebene durch struktur-perfekte Phantom-Responses.
+ * Fix: Eliminierung von Core-Warnings und Fatal Errors (array_walk) durch exaktes Payload-Matching.
  */
 class VIS_Styx_Lite {
 
@@ -16,7 +16,7 @@ class VIS_Styx_Lite {
         $this->kill_telemetry = isset($options['styx_kill_telemetry']) ? $options['styx_kill_telemetry'] : 1;
 
         if ($this->kill_telemetry) {
-            // Priorität 999: STYX hat das letzte Wort vor dem tatsächlichen Netzwerk-Call
+            // Priorität 999: STYX hat das absolute letzte Wort vor dem tatsächlichen Netzwerk-Call.
             add_filter('pre_http_request', [$this, 'intercept_outbound_traffic'], 999, 3);
         }
     }
@@ -33,19 +33,23 @@ class VIS_Styx_Lite {
 
         if (in_array($host, $blocked_domains)) {
             
-            // VGT OMEGA FIX: PHANTOM RESPONSE MATRIX
-            // Anstatt einen Fehler (WP_Error) zu werfen, der das WP-Core-Log zumüllt,
-            // füttern wir die WP-internen Funktionen mit einer perfekten, leeren API-Antwort.
-            // Der Core denkt, die Kommunikation war erfolgreich und es gibt einfach "keine Updates".
+            // VGT OMEGA FIX: PHANTOM RESPONSE MATRIX 2.0 (APEX STATE)
+            // Der WP Core erwartet bei API Calls strikt definierte JSON-Strukturen. 
+            // Fehlen die Keys 'plugins' oder 'themes', wirft der Core Fatal Errors bei array_walk().
+            // Wir injizieren ein perfektes, leeres Datenmodell. Der Core interpretiert dies als "System ist aktuell".
             
+            $mock_body = json_encode([
+                'plugins'      => [], // Zwingend erforderlich für /plugins/update-check/
+                'themes'       => [], // Zwingend erforderlich für /themes/update-check/
+                'translations' => [], // Zwingend für Translations-Updates
+                'update'       => [], // Legacy / Fallback
+                'no_update'    => [], // Legacy / Fallback
+                'offers'       => []  // Zwingend erforderlich für /core/version-check/
+            ]);
+
             return [
                 'headers'  => [],
-                'body'     => json_encode([
-                    'translations' => [], 
-                    'update'       => [], 
-                    'no_update'    => [],
-                    'offers'       => []
-                ]),
+                'body'     => $mock_body,
                 'response' => [
                     'code'    => 200,
                     'message' => 'OK'
@@ -55,7 +59,7 @@ class VIS_Styx_Lite {
             ];
         }
 
-        // Andere Requests passieren lassen
+        // Nicht-Telemetrie-Traffic ungehindert passieren lassen
         return $preempt; 
     }
 }
