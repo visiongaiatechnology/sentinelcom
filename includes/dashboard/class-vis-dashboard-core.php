@@ -17,7 +17,7 @@ class VIS_Dashboard_Core {
     public function menu() {
         $this->page_hook = add_menu_page(
             'Sentinel', 'Sentinel', 'manage_options', 'vis-sentinel', 
-            [new VIS_Dashboard_View(), 'render'], 'dashicons-shield-alt', 99
+            [new VIS_Dashboard_View(), 'render'], VIS_SENTINEL_ICON, 99
         );
     }
 
