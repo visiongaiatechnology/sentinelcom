@@ -2,7 +2,7 @@
 /**
  * Plugin Name: VGT Sentinel
  * Description: Community Edition
- * Version: 1.1.0 APEX CORE
+ * Version: 1.1.1 APEX CORE
  * Author: VisionGaiaTechnology
  * Author URI: https://visiongaiatechnology.de
  * License: AGPLv3
@@ -12,7 +12,7 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- SYSTEM KONSTANTEN ---
-define('VIS_VERSION', '1.1.0');
+define('VIS_VERSION', '1.1.1');
 define('VIS_PATH', plugin_dir_path(__FILE__));
 define('VIS_URL', plugin_dir_url(__FILE__));
 
@@ -105,25 +105,46 @@ register_deactivation_hook(__FILE__, function() {
     flush_rewrite_rules();
 });
 
-// --- BOOTSTRAP ---
+// --- BOOTSTRAP (VGT KERNEL PRIORITY QUEUE) ---
+// VGT FIX: Priority -9999 zwingt Sentinel dazu, vor ALLEN anderen Plugins zu booten.
 add_action('plugins_loaded', function() {
+    
+    // ==========================================
+    // TIER 1: PERIMETER & PAYLOAD DEFENSE (CRITICAL)
+    // ==========================================
+    
+    // 1. CERBERUS (Layer 1: IP Perimeter Shield)
+    // Lädt als allererstes. Ist die IP gebannt, terminiert der Request hier in Millisekunden.
+    // Verhindert massiven CPU-Waste durch überflüssige Payload-Scans.
+    new VIS_Cerberus();
+
+    // Lade globale Konfiguration nur einmal für den restlichen Stack
     $options = get_option('vis_config', []);
 
-    // 1. Compatibility Layer
+    // 2. AEGIS (Layer 2: Application Firewall)
+    // Scannt Payloads (GET/POST/URI). Läuft nur, wenn Cerberus die IP durchgelassen hat.
+    new VIS_Aegis($options); 
+
+    // ==========================================
+    // TIER 2: COMPATIBILITY LAYER
+    // ==========================================
     new VIS_Compatibility_Manager();
 
-    // 2. Security Modules
-    new VIS_Aegis($options); 
+    // ==========================================
+    // TIER 3: SECONDARY SECURITY MODULES
+    // ==========================================
     new VIS_Titan($options);
     new VIS_Hades($options);
     new VIS_Styx_Lite($options);
-    new VIS_Cerberus();
     new VIS_Airlock();
     new VIS_Ghost_Trap();
     new VIS_Chronos();
 
-    // 3. Admin UI
+    // ==========================================
+    // TIER 4: ADMIN DASHBOARD
+    // ==========================================
     if (is_admin()) {
         new VIS_Dashboard_Core();
     }
-});
+    
+}, -9999); // ABSOLUTE EXECUTION PRIORITY
