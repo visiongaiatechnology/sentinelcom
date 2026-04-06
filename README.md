@@ -91,11 +91,12 @@ STYX LITE (Outbound Control)
 
 ### ⚡ 2.1 AEGIS — Web Application Firewall
 
+Stream-based WAF for real-time payload inspection.
+
 <img width="1734" height="910" alt="{BB3396A0-73EA-48D9-83E9-B996F387E50D}" src="https://github.com/user-attachments/assets/3ff5f406-5989-488d-bcea-4a8d408946cb" />
 
 
 
-Stream-based WAF for real-time payload inspection.
 
 | Parameter | Value |
 |---|---|
@@ -300,7 +301,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 ```bash
 # 1. Clone into WordPress plugins directory
 cd /var/www/html/wp-content/plugins/
-git clone [https://github.com/visiongaiatechnology/vgt-sentinel](https://github.com/visiongaiatechnology/sentinelcom)
+git clone https://github.com/visiongaiatechnology/sentinelcom
 
 # 2. Activate in WordPress Admin
 # Plugins → VGT Sentinel Community Edition → Activate
