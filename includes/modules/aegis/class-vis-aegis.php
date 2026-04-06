@@ -176,7 +176,7 @@ class VIS_Aegis {
             'severity' => (in_array($vector_type, ['sqli', 'rce', 'lfi']) || $action_type === 'BAN') ? 10 : 5
         ]);
 
-        if (in_array($vector_type, ['sqli', 'rce', 'lfi'])) {
+        if (in_array($vector_type, ['sqli', 'rce', 'lfi', 'gql_recon', 'ua'])) {
             $this->engage_ban_protocol("AEGIS: Critical Vector [$vector_type]");
             $action_type = 'BAN'; 
         }
