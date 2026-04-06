@@ -12,6 +12,7 @@
 > *AGPLv3 — Open Source Core. Built for humans, not for SaaS margins.*
 
 
+<img width="675" height="675" alt="TGL Covers" src="https://github.com/user-attachments/assets/e7920fcd-a771-45d1-968a-76dcdad0a716" />
 
 
 
