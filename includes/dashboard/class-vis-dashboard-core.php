@@ -20,6 +20,7 @@ class VIS_Dashboard_Core {
             [new VIS_Dashboard_View(), 'render'], 'dashicons-shield-alt', 99
         );
     }
+
     public static function handle_unban_ip(): void {
         // Passe 'vis_dashboard_nonce' an deinen tatsächlich verwendeten Nonce-String an
         check_ajax_referer('vis_dashboard_nonce', 'nonce'); 
@@ -44,6 +45,7 @@ class VIS_Dashboard_Core {
             wp_send_json_error('VGT DB ERROR: Unban failed.');
         }
     }
+
     public function enqueue_assets($hook) {
         if ($hook !== $this->page_hook) return;
         wp_enqueue_style('vis-dashboard-css', VIS_URL . 'assets/css/vis-dashboard.css', [], VIS_VERSION);
@@ -57,15 +59,18 @@ class VIS_Dashboard_Core {
     public function save_settings() {
         if (isset($_POST['vis_save_config']) && check_admin_referer('vis_save_config')) {
             $current = get_option('vis_config', []);
-            $new     = isset($_POST['vis_config']) ? $_POST['vis_config'] : [];
+            
+            // VGT KERNEL: wp_unslash entfernt die automatischen WordPress Escape-Slashes aus dem POST-Payload
+            $new     = isset($_POST['vis_config']) && is_array($_POST['vis_config']) ? wp_unslash($_POST['vis_config']) : [];
             $context = isset($_POST['vis_context']) ? sanitize_key($_POST['vis_context']) : 'all';
 
+            // 1. CHEKCBOX HANDLING (Fehlende Checkboxen auf 0 setzen)
             $scope_map = [
                 'aegis'   => ['aegis_enabled'],
                 'titan'   => ['titan_enabled', 'titan_block_xmlrpc', 'titan_block_rest', 'titan_disable_feeds', 'titan_cleanup_emojis', 'titan_cleanup_embeds'],
                 'hades'   => ['hades_enabled'],
                 'styx'    => ['styx_kill_telemetry'],
-                'airlock' => ['airlock_enabled'] // NEU
+                'airlock' => ['airlock_enabled']
             ];
 
             $checkboxes_to_check = $scope_map[$context] ?? [];
@@ -77,6 +82,17 @@ class VIS_Dashboard_Core {
                 if (!isset($new[$cb])) {
                     $new[$cb] = 0;
                 }
+            }
+
+            // 2. VGT SANITIZATION: Sicherstellen, dass Text/Select Eingaben strikt gereinigt werden
+            if (isset($new['aegis_mode'])) {
+                $new['aegis_mode'] = sanitize_key($new['aegis_mode']); // Erlaubt nur a-z, 0-9, -, _
+            }
+            if (isset($new['aegis_whitelist_ips'])) {
+                $new['aegis_whitelist_ips'] = sanitize_textarea_field($new['aegis_whitelist_ips']);
+            }
+            if (isset($new['aegis_whitelist_uas'])) {
+                $new['aegis_whitelist_uas'] = sanitize_textarea_field($new['aegis_whitelist_uas']);
             }
 
             $final_data = array_merge($current, $new);
