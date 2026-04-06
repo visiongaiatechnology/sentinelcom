@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) exit;
 define('VIS_VERSION', '1.1.1');
 define('VIS_PATH', plugin_dir_path(__FILE__));
 define('VIS_URL', plugin_dir_url(__FILE__));
-
+define('VIS_SENTINEL_ICON', VIS_URL . 'Sentinel.png');
 // VAULT ARCHITEKTUR
 $upload_dir = wp_upload_dir();
 define('VIS_VAULT_DIR', $upload_dir['basedir'] . '/vis-vault-omega');
