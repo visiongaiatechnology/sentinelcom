@@ -13,6 +13,7 @@ class VIS_Dashboard_View {
         'overview'   => ['icon' => 'dashicons-chart-area', 'label' => 'COMMAND CENTER'],
         'integrity'  => ['icon' => 'dashicons-search',     'label' => 'INTEGRITY MONITOR'],
         'aegis'      => ['icon' => 'dashicons-shield',     'label' => 'AEGIS FIREWALL'],
+        'cerberus'   => ['icon' => 'dashicons-shield',     'label' => 'CERBERUS BAN'],
         'titan'      => ['icon' => 'dashicons-lock',       'label' => 'TITAN HARDENING'],
         'mudeployer' => ['icon' => 'dashicons-admin-network', 'label' => 'MU-DEPLOYER'], // NEU: Instanz 0 Boot
         'airlock'    => ['icon' => 'dashicons-upload',     'label' => 'AIRLOCK GUARD'],
