@@ -55,7 +55,9 @@ if (!defined('ABSPATH')) exit;
 <aside class="vis-sidebar">
     <!-- BRANDING SECTION -->
     <div class="vis-brand">
-        <span class="dashicons dashicons-shield-alt vis-logo-glitch"></span>
+        <!-- VGT SUPREME: Dynamic Icon Injection -->
+        <img src="<?php echo esc_url(VIS_SENTINEL_ICON); ?>" alt="Sentinel Icon" class="vis-logo-glitch" style="width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));">
+        
         <div>
             <h2 style="margin:0; font-size:16px; color:#fff; font-weight:700; letter-spacing:0.5px;">
                 VGT<span style="color:var(--vis-accent);">SENTINEL</span>
