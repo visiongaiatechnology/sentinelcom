@@ -11,6 +11,10 @@
 > *"No external libraries. No blind trust. No compromise."*
 > *AGPLv3 — Open Source Core. Built for humans, not for SaaS margins.*
 
+![min-Picsart_26-04-04_20-20-04-003](https://github.com/user-attachments/assets/27b59755-1e4d-4844-9628-2350042ad7aa)
+
+
+
 ---
 
 ## 🔍 What is VGT Sentinel?
