@@ -22,7 +22,7 @@ class VIS_Aegis {
         'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*+\(/i',
         'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
         'gql_recon' => '/(?:__schema|__type)\s*+(?:\{|\(|:)/i',
-        'sqli'      => '/(?:union(?:\s++|\/\*.*?\*\/)select|information_schema|waitfor(?:\s++|\/\*.*?\*\/)delay|hex\s*+\(|unhex\s*+\(|concat\s*+\(|char\s*+\(|\s++OR\s++1=1)/i',
+        'sqli'      => '/(?:union(?:[\s\/\*]+(?:all|distinct))?[\s\/\*\(]++select|information_schema|waitfor[\s\/\*]++delay|benchmark\s*+\(|sleep\s*+\(|extractvalue\s*+\(|updatexml\s*+\(|hex\s*+\(|unhex\s*+\(|concat\s*+\(|char\s*+\(|\s++(?:OR|AND)\s++(?:[\d\'"]++|TRUE|FALSE)[\s\=\>]++(?:[\d\'"]++|TRUE|FALSE)|0x[0-9a-f]{2,}|declare[^@]{1,128}?@[^=]{1,128}?=|cast\s*+\(|@@version|drop\s++(?:table|database)|alter\s++table|into\s++(?:outfile|dumpfile)|load\s++data\s++infile|xp_cmdshell|pg_sleep\s*+\()/i',
         'xss'       => '/(?:<script|javascript:|on(?:load|error|click|mouseover)=|base64_decode|vbscript:|data:text\/html)/i',
         'ua'        => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
     ];
