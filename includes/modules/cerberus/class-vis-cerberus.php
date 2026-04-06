@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) exit;
  * KOGNITIVE UPGRADES:
  * - Filesystem State Tracking: Null DB-Hits während einer Brute-Force Welle.
  * - Anti-Timing Attack Sleep Delays bei positiven Ban-Hits.
+ * - VGT FIX: Global Perimeter Lockdown (Blockiert die gesamte Website, nicht nur Login).
  */
 class VIS_Cerberus {
 
@@ -18,7 +19,11 @@ class VIS_Cerberus {
     public function __construct() {
         $this->vault_dir = defined('VIS_VAULT_DIR') ? VIS_VAULT_DIR : wp_upload_dir()['basedir'] . '/vis-vault-omega';
 
-        // Priority 1: Sofortiges Tarpitting/Blocking vor WP-Auth
+        // VGT KERNEL FIX: GLOBAL PERIMETER GUARD
+        // Feuert bei JEDEM Seitenaufruf. Ist die IP in der DB, stirbt der Request sofort.
+        add_action('plugins_loaded', [$this, 'enforce_global_perimeter'], 0);
+
+        // Priority 1: Sofortiges Tarpitting/Blocking vor WP-Auth (Für gezielte Login-Angriffe)
         add_filter('authenticate', [$this, 'enforce_access_control'], 1, 3);
         
         // Tracking von fehlgeschlagenen Logins via Disk I/O
@@ -26,16 +31,40 @@ class VIS_Cerberus {
     }
 
     /**
-     * ACCESS CONTROL & TARPITTING
+     * VGT GLOBAL PERIMETER LOCKDOWN
+     * Schützt die komplette Website vor IP-Adressen, die von AEGIS oder Cerberus gebannt wurden.
+     */
+    public function enforce_global_perimeter(): void {
+        if (defined('WP_CLI') && WP_CLI) return;
+        if (defined('DOING_CRON') && DOING_CRON) return;
+
+        global $wpdb;
+        $ip = class_exists('VIS_Network') && method_exists('VIS_Network', 'resolve_true_ip') 
+              ? VIS_Network::resolve_true_ip() 
+              : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+              
+        $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
+
+        // O(1) Lookup: Existiert die IP in der Ban-Liste?
+        $is_banned = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE ip = %s LIMIT 1", $ip));
+
+        if ($is_banned) {
+            http_response_code(403);
+            header('Connection: Close');
+            die('<h1>403 Forbidden</h1><hr>VISIONGAIA CERBERUS: Access Denied. Your IP has been permanently banned from this network.');
+        }
+    }
+
+    /**
+     * ACCESS CONTROL & TARPITTING (Login Guard)
      */
     public function enforce_access_control($user, $username, $password) {
         if (is_wp_error($user)) return $user;
 
         global $wpdb;
-        $ip = VIS_Network::resolve_true_ip();
+        $ip = class_exists('VIS_Network') ? VIS_Network::resolve_true_ip() : $_SERVER['REMOTE_ADDR'];
         $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
 
-        // O(1) Lookup: Existiert die IP in der Ban-Liste?
         $is_banned = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE ip = %s LIMIT 1", $ip));
 
         if ($is_banned) {
@@ -56,7 +85,7 @@ class VIS_Cerberus {
      * Vermeidet den MySQL Max-Connection Tod auf Shared Hostings.
      */
     public function register_auth_failure(string $username): void {
-        $ip = VIS_Network::resolve_true_ip();
+        $ip = class_exists('VIS_Network') ? VIS_Network::resolve_true_ip() : $_SERVER['REMOTE_ADDR'];
         
         // Vault Absicherung
         if (!is_dir($this->vault_dir)) {
