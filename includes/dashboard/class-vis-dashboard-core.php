@@ -11,6 +11,7 @@ class VIS_Dashboard_Core {
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
         add_action('wp_ajax_vis_run_scan', [$this, 'ajax_scan']);
         add_action('wp_ajax_vis_approve_changes', [$this, 'ajax_approve']);
+        add_action('wp_ajax_vis_dashboard_unban_ip', [self::class, 'handle_unban_ip']);
     }
 
     public function menu() {
@@ -19,7 +20,30 @@ class VIS_Dashboard_Core {
             [new VIS_Dashboard_View(), 'render'], 'dashicons-shield-alt', 99
         );
     }
+    public static function handle_unban_ip(): void {
+        // Passe 'vis_dashboard_nonce' an deinen tatsächlich verwendeten Nonce-String an
+        check_ajax_referer('vis_dashboard_nonce', 'nonce'); 
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('VGT SECURITY ALERT: Unauthorized access.');
+        }
 
+        $ip = sanitize_text_field($_POST['ip'] ?? '');
+        if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            wp_send_json_error('VGT KERNEL ERROR: Invalid IP format.');
+        }
+
+        global $wpdb;
+        $table_bans = defined('VIS_TABLE_BANS') ? $wpdb->prefix . VIS_TABLE_BANS : $wpdb->prefix . 'vis_bans';
+        
+        $deleted = $wpdb->delete($table_bans, ['ip' => $ip]);
+        
+        if ($deleted !== false) {
+            wp_send_json_success('IP unbanned.');
+        } else {
+            wp_send_json_error('VGT DB ERROR: Unban failed.');
+        }
+    }
     public function enqueue_assets($hook) {
         if ($hook !== $this->page_hook) return;
         wp_enqueue_style('vis-dashboard-css', VIS_URL . 'assets/css/vis-dashboard.css', [], VIS_VERSION);
