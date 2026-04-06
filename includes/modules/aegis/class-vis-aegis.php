@@ -19,22 +19,11 @@ class VIS_Aegis {
     private string $validated_ip;
 
     private array $patterns = [
-    // RCE: Fängt nur den absolut nackten Standard-Call (system( -> block). Ignoriert Backticks, Variable-Variables, CLI-Pipes.
     'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
-    
-    // LFI: Fängt ../ ab. Ignoriert fortgeschrittene Wrapper (php://, phar://) und Hex-Encoding.
     'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
-    
-    // SQLi: Fängt Standard-SQLMap ab. Tautologie (OR 1=1) ist einfach gehalten. KEIN ReDoS-Schutz (kein ++).
     'sqli'      => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
-    
-    // XSS: Fängt Standard <script> und simple Event-Handler ab. Ignoriert SVG-Tricks, MathML und Obfuscation.
     'xss'       => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
-    
-    // GraphQL: Standard Recon.
-    'gql_recon' => '/(?:__schema|__type)\s*(?:\{|\(|:)/i',
-    
-    // UA: Standard Bot-Liste.
+    'gql_recon' => '/(?:__schema|__type)\s*(?:\{|\(|:)/i',  
     'ua'        => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
 ];
 
