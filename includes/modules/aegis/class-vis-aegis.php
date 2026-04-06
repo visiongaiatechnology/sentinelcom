@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) exit;
  * - Multi-Byte Boundary-Safe Stream Inspection (verhindert Payload-Splitting).
  * - Double-Decode Protection gegen WAF-Evasion.
  * - Strict Memory Management via expliziten Garbage Collection Triggers.
+ * - VGT Zero-Trust Whitelist Protocol & Cerberus Handshake integriert.
  */
 class VIS_Aegis {
 
@@ -18,18 +19,34 @@ class VIS_Aegis {
     private int $scan_limit = 524288; // 512KB Max Stream Scan
     private string $validated_ip;
 
+    // Dynamische Whitelist Arrays
+    private array $whitelist_ips = [];
+    private array $whitelist_uas = [];
+
     private array $patterns = [
-    'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
-    'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
-    'sqli'      => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
-    'xss'       => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
-    'gql_recon' => '/(?:__schema|__type)\s*(?:\{|\(|:)/i',  
-    'ua'        => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
-];
+        'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
+        'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
+        'sqli'      => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
+        'xss'       => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
+        'gql_recon' => '/(?:__schema|__type)\s*(?:\{|\(|:)/i',
+        'ua'        => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
+    ];
 
     public function __construct(array $options) {
         $this->enabled = !empty($options['aegis_enabled']);
         $this->mode    = (string) ($options['aegis_mode'] ?? 'strict');
+
+        // VGT KERNEL: Dynamische Whitelists extrahieren
+        $raw_ips = $options['aegis_whitelist_ips'] ?? ($options['whitelist_ips'] ?? '');
+        $raw_uas = $options['aegis_whitelist_uas'] ?? ($options['whitelist_uas'] ?? '');
+
+        $this->whitelist_ips = array_filter(array_map('trim', explode("\n", $raw_ips)));
+        $this->whitelist_uas = array_filter(array_map('trim', explode("\n", $raw_uas)));
+
+        // VGT DRY KERNEL: Zentralisierte IP Resolution
+        $this->validated_ip = class_exists('VIS_Network') && method_exists('VIS_Network', 'resolve_true_ip') 
+                              ? VIS_Network::resolve_true_ip() 
+                              : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
 
         if (!$this->enabled || $this->is_whitelisted() || $this->is_static_asset()) {
             return;
@@ -39,8 +56,6 @@ class VIS_Aegis {
         ini_set('pcre.backtrack_limit', '100000');
         ini_set('pcre.recursion_limit', '100000');
 
-        // VGT DRY KERNEL: Zentralisierte IP Resolution
-        $this->validated_ip = VIS_Network::resolve_true_ip();
         $this->guard();
     }
 
@@ -132,8 +147,14 @@ class VIS_Aegis {
     private function engage_ban_protocol(string $reason): void {
         if ($this->mode === 'learning') return;
 
+        // VGT KERNEL FIX: Direkter Handshake mit Cerberus, falls verfügbar!
+        if (class_exists('VIS_Cerberus') && method_exists('VIS_Cerberus', 'instance')) {
+            VIS_Cerberus::instance()->ban_ip($this->validated_ip, $reason);
+            return;
+        }
+
+        // Fallback: Direkter Datenbank-Eintrag, falls Cerberus deaktiviert ist
         global $wpdb;
-        // Nutzt Fallback, falls Konstante nicht definiert
         $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans'); 
         $uri   = substr(esc_url_raw($_SERVER['REQUEST_URI'] ?? ''), 0, 255);
 
@@ -171,10 +192,49 @@ class VIS_Aegis {
         die('<h1>403 Forbidden</h1><hr>VisionGaia Security Enforced.');
     }
 
+    /**
+     * VGT ZERO-TRUST WHITELIST
+     * Evaluiert IPs und UAs dynamisch. Keine nativen Admin-Bypasses mehr!
+     */
     private function is_whitelisted(): bool {
-        if (defined('DOING_CRON') && DOING_CRON) return true;
+        // System-Prozesse erlauben
+        if (defined('DOING_CRON') && DOING_CRON) {
+            $server_ip = $_SERVER['SERVER_ADDR'] ?? null;
+            if ($server_ip && $this->validated_ip === $server_ip) return true;
+        }
+        
         if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) return false; 
-        if (is_admin() && current_user_can('manage_options')) return true;
+        
+        // Lokale Server-Loops (Immun)
+        if (in_array($this->validated_ip, ['127.0.0.1', '::1', 'fe80::1'], true)) {
+            return true;
+        }
+
+        // 1. IP Whitelist Check
+        if (!empty($this->whitelist_ips) && in_array($this->validated_ip, $this->whitelist_ips, true)) {
+            return true;
+        }
+
+        // 2. User-Agent Whitelist Check
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        if (!empty($this->whitelist_uas) && $ua !== '') {
+            foreach ($this->whitelist_uas as $safe_ua) {
+                if ($safe_ua === '') continue;
+                if (stripos($ua, $safe_ua) !== false) {
+                    return true;
+                }
+            }
+        }
+
+        // 3. Fallback: Googlebot / Suchmaschinen DNS Verify
+        if (preg_match('/(googlebot|bingbot|duckduckbot)/i', $ua)) {
+            $hostname = gethostbyaddr($this->validated_ip);
+            if ($hostname !== $this->validated_ip) {
+                if (preg_match('/googlebot\.com$/i', $hostname)) return true;
+                if (preg_match('/search\.msn\.com$/i', $hostname)) return true;
+            }
+        }
+
         return false;
     }
 
