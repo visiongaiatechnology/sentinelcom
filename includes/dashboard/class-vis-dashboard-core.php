@@ -22,7 +22,6 @@ class VIS_Dashboard_Core {
     }
 
     public static function handle_unban_ip(): void {
-        // Passe 'vis_dashboard_nonce' an deinen tatsächlich verwendeten Nonce-String an
         check_ajax_referer('vis_dashboard_nonce', 'nonce'); 
         
         if (!current_user_can('manage_options')) {
@@ -60,11 +59,9 @@ class VIS_Dashboard_Core {
         if (isset($_POST['vis_save_config']) && check_admin_referer('vis_save_config')) {
             $current = get_option('vis_config', []);
             
-            // VGT KERNEL: wp_unslash entfernt die automatischen WordPress Escape-Slashes aus dem POST-Payload
             $new     = isset($_POST['vis_config']) && is_array($_POST['vis_config']) ? wp_unslash($_POST['vis_config']) : [];
             $context = isset($_POST['vis_context']) ? sanitize_key($_POST['vis_context']) : 'all';
 
-            // 1. CHEKCBOX HANDLING (Fehlende Checkboxen auf 0 setzen)
             $scope_map = [
                 'aegis'   => ['aegis_enabled'],
                 'titan'   => ['titan_enabled', 'titan_block_xmlrpc', 'titan_block_rest', 'titan_disable_feeds', 'titan_cleanup_emojis', 'titan_cleanup_embeds'],
@@ -84,9 +81,8 @@ class VIS_Dashboard_Core {
                 }
             }
 
-            // 2. VGT SANITIZATION: Sicherstellen, dass Text/Select Eingaben strikt gereinigt werden
             if (isset($new['aegis_mode'])) {
-                $new['aegis_mode'] = sanitize_key($new['aegis_mode']); // Erlaubt nur a-z, 0-9, -, _
+                $new['aegis_mode'] = sanitize_key($new['aegis_mode']); 
             }
             if (isset($new['aegis_whitelist_ips'])) {
                 $new['aegis_whitelist_ips'] = sanitize_textarea_field($new['aegis_whitelist_ips']);
