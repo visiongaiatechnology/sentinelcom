@@ -19,7 +19,8 @@ VGT Sentinel Community Edition is a **modular, zero-dependency WordPress securit
 
 It is the open-source core of the VGT Sentinel suite — a battle-hardened, multi-layered defense system built on a **Zero-Trust architecture**. Every request is inspected, every header hardened, every upload analyzed, every file hashed.
 
-<img width="1737" height="914" alt="{1D2D5C45-A94D-4041-AE56-1791A8E40496}" src="https://github.com/user-attachments/assets/feef431e-a042-4e6c-81f3-fcbeeb6cc8b8" />
+<img width="1749" height="906" alt="{5F2676BC-C375-4830-A497-B98D228ED23E}" src="https://github.com/user-attachments/assets/468784d3-4022-4fed-b563-9165f2bc4001" />
+
 
 
 ```
@@ -90,7 +91,8 @@ STYX LITE (Outbound Control)
 
 ### ⚡ 2.1 AEGIS — Web Application Firewall
 
-<img width="1735" height="910" alt="{11C1AE23-D3BF-4E79-8E60-EB528AE623CF}" src="https://github.com/user-attachments/assets/c3261cb4-26e1-4c5e-b6a0-dd489456cc8b" />
+<img width="1747" height="908" alt="{71C52BDB-CA2F-4A57-9919-18D402E53F60}" src="https://github.com/user-attachments/assets/ba2da2ab-b835-44d4-899d-9401818d701b" />
+
 
 
 Stream-based WAF for real-time payload inspection.
@@ -108,6 +110,9 @@ Stream-based WAF for real-time payload inspection.
 ### 🔩 2.2 TITAN — Kernel Hardening
 
 Application-layer hardening and server signature masking.
+
+<img width="1750" height="905" alt="{93DD0E21-02EB-4C5E-BC91-6DE083326321}" src="https://github.com/user-attachments/assets/047a7845-bc9b-4892-90f5-1847e86d1f71" />
+
 
 ```
 Headers Enforced:
@@ -135,7 +140,8 @@ Protected Paths (.htaccess):
 
 Architecture obfuscation to prevent automated WordPress fingerprinting.
 
-<img width="1733" height="909" alt="{63606BBB-23A0-442C-8AAB-926015A1DB45}" src="https://github.com/user-attachments/assets/ab1b7486-37b3-4e22-b720-749675a13d8a" />
+<img width="1748" height="910" alt="{612F5CF2-053A-4A04-8153-F23CBC83E0D8}" src="https://github.com/user-attachments/assets/9fcec577-5213-4734-9933-c53ad008de8a" />
+
 
 
 **URL Rewrite Map:**
@@ -157,6 +163,9 @@ Architecture obfuscation to prevent automated WordPress fingerprinting.
 
 Pre-authentication IP validation and brute-force defense.
 
+<img width="1753" height="909" alt="{87791C5E-509B-49DB-9AF6-63A6148C5214}" src="https://github.com/user-attachments/assets/3c0e0556-51d0-4ad5-bea2-0d0c85d6fb14" />
+
+
 | Feature | Detail |
 |---|---|
 | **True-IP Detection** | Native Cloudflare CIDR validation — prevents X-Forwarded-For spoofing |
@@ -169,7 +178,8 @@ Pre-authentication IP validation and brute-force defense.
 
 Network-layer control against data exfiltration and supply-chain attacks.
 
-<img width="1741" height="908" alt="{6D353779-0E75-4EA0-9DA5-72DED957C004}" src="https://github.com/user-attachments/assets/9d382291-9f97-4ba2-bf63-2662341c237a" />
+<img width="1751" height="908" alt="{03D0FA24-4E7B-47B9-8CD9-5A38C9D9F66F}" src="https://github.com/user-attachments/assets/22acc9aa-beef-4895-91ed-a12d32fed1da" />
+
 
 
 ```
@@ -188,7 +198,8 @@ Supply-Chain Protection:
 
 Binary-level analysis of all file uploads (`multipart/form-data`).
 
-<img width="1736" height="907" alt="{12331AA5-E93D-487F-84BD-656ADA077DF9}" src="https://github.com/user-attachments/assets/247daa1f-0901-405a-8e96-a763d1e46caa" />
+<img width="1750" height="912" alt="{F202F832-6642-4595-8F6B-DD5EA5F54B4D}" src="https://github.com/user-attachments/assets/96b4cacf-726d-45fd-9027-5aed572369e3" />
+
 
 
 | Feature | Detail |
@@ -298,6 +309,14 @@ On first activation, Sentinel automatically:
 → Deploys Ghost Trap honeypot
 → Activates STYX outbound kill switch
 ```
+<img width="1749" height="906" alt="{9D2A7C57-9EC6-4183-9E36-04120AA9419A}" src="https://github.com/user-attachments/assets/1199d85a-c9f6-40ad-b596-12dea0e77964" />
+
+
+<img width="1750" height="911" alt="{9A9F9703-E90B-4591-A717-C5D406B6FEAA}" src="https://github.com/user-attachments/assets/0d0f7459-7a50-49ba-8ecc-2c4acd803fcd" />
+
+
+<img width="1749" height="904" alt="{7C042814-E8E4-484D-A698-5CE6C5E90889}" src="https://github.com/user-attachments/assets/8bc0d18f-be99-414f-9935-22cef04d2964" />
+
 
 ---
 
