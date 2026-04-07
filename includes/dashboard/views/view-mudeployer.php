@@ -2,18 +2,15 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-// --- VGT AUTONOME DEPLOYMENT LOGIK (PLATIN HARDENED) ---
 $mu_dir  = defined('WPMU_PLUGIN_DIR') ? WPMU_PLUGIN_DIR : wp_normalize_path(WP_CONTENT_DIR . '/mu-plugins');
 $mu_file = $mu_dir . '/0-vgt-sentinel-loader.php'; // Prefix 0 erzwingt Prio 1
 
-// Path Normalization schützt vor Slash-Manipulationen in Windows/Linux Environments
 $vgt_target = wp_normalize_path(VIS_PATH . 'vision-integrity-sentinel.php');
 
 $message_de = '';
 $message_en = '';
 $msg_type = '';
 
-// POST Handler (Zero-Dependency)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vgt_mu_action'])) {
     if (isset($_POST['vis_mu_nonce']) && wp_verify_nonce($_POST['vis_mu_nonce'], 'vis_mu_deploy')) {
         
@@ -24,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vgt_mu_action'])) {
             
             if (is_writable($mu_dir) || is_writable($mu_file)) {
                 
-                // OMEGA HARDENED PAYLOAD
                 $mu_content = "<?php\n" .
                 "/**\n" .
                 " * Plugin Name: VGT Sentinel MU-Loader (Hardened)\n" .
@@ -43,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vgt_mu_action'])) {
                 "}\n";
                 
                 if (@file_put_contents($mu_file, $mu_content) !== false) {
-                    // File Permission Lockdown (Verhindert Tampering durch andere Plugins)
                     @chmod($mu_file, 0644);
                     
                     $message_de = 'MU-Loader erfolgreich injiziert und verriegelt. AEGIS operiert nun auf Pre-Boot Ebene.';
@@ -62,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vgt_mu_action'])) {
         } 
         elseif ($_POST['vgt_mu_action'] === 'remove') {
             if (file_exists($mu_file)) {
-                // Lock kurzzeitig aufheben, um Datei zu löschen
                 @chmod($mu_file, 0664);
                 if (@unlink($mu_file)) {
                     $message_de = 'MU-Loader rückstandsfrei entfernt. System läuft im Standard-Modus.';
@@ -82,24 +76,19 @@ $is_deployed = file_exists($mu_file);
 ?>
 
 <style>
-    /* VGT Language State CSS (Zero Runtime Overhead, Strict Specificity) */
     @keyframes visFadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Base State: EN is strictly hidden mit absoluter Priorität */
     .vis-lang-en { display: none !important; }
     .vis-lang-de { animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Active EN State: DE is hidden, EN restores native display type */
     .vis-state-en .vis-lang-de { display: none !important; }
     .vis-state-en span.vis-lang-en { display: inline !important; animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Block elements restoration */
     .vis-state-en strong.vis-lang-en,
     .vis-state-en h4.vis-lang-en,
     .vis-state-en p.vis-lang-en, 
     .vis-state-en div.vis-lang-en { display: block !important; animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Toggle Switch Styling */
     .vis-toggle-wrapper { display: flex; justify-content: flex-end; margin-bottom: 20px; }
     .vis-toggle-label { display: flex; align-items: center; cursor: pointer; gap: 12px; background: rgba(15, 23, 42, 0.6); padding: 6px 14px; border-radius: 20px; border: 1px solid #334155; backdrop-filter: blur(4px); transition: all 0.3s ease; }
     .vis-toggle-label:hover { border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 0 10px rgba(6, 182, 212, 0.1); }
@@ -115,7 +104,6 @@ $is_deployed = file_exists($mu_file);
 </style>
 
 <div id="vis-mu-container">
-    <!-- UI LANGUAGE TOGGLE -->
     <div class="vis-toggle-wrapper">
         <label class="vis-toggle-label">
             <span class="vis-toggle-text vis-text-de">DE</span>
@@ -160,7 +148,6 @@ $is_deployed = file_exists($mu_file);
             This elevates Sentinel to the irrefutable <strong>Instance 0</strong>, neutralizing attacks before other system components even awaken.
         </p>
 
-        <!-- STATUS MATRIX -->
         <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--vis-border); border-radius: 8px; padding: 25px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
             
             <div style="display: flex; align-items: center; gap: 20px;">
@@ -184,7 +171,6 @@ $is_deployed = file_exists($mu_file);
                 </div>
             </div>
 
-            <!-- ACTION FORM -->
             <form method="post" action="">
                 <?php wp_nonce_field('vis_mu_deploy', 'vis_mu_nonce'); ?>
                 
@@ -219,22 +205,17 @@ $is_deployed = file_exists($mu_file);
 </div>
 
 <script>
-/**
- * VGT LANGUAGE KERNEL (ZERO-OVERHEAD DOM MANAGER)
- * Synchronisiert sich mit dem globalen LocalStorage State (vis_v7_lang_preference).
- */
+
 document.addEventListener('DOMContentLoaded', () => {
     const toggle   = document.getElementById('vis-mu-lang-toggle');
     const wrapper  = document.getElementById('vis-mu-container');
     const langKey  = 'vis_v7_lang_preference';
 
-    // 1. Initial State Check (Synchronisation mit Dashboard)
     if (localStorage.getItem(langKey) === 'en') {
         toggle.checked = true;
         wrapper.classList.add('vis-state-en');
     }
 
-    // 2. State Mutator Event
     toggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             wrapper.classList.add('vis-state-en');
@@ -247,7 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Listener für Cross-Tab Synchronisation
     window.addEventListener('vgt_lang_sync', () => {
         if (localStorage.getItem(langKey) === 'en') {
             toggle.checked = true;
