@@ -2,18 +2,9 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-/**
- * MODULE: VGT CONSOLE (TERMINAL)
- * Status: PLATIN (PSYCHOLOGICAL OPERATIONS)
- * Logic: Simuliertes CLI-Terminal mit Easter-Egg "Price Glitch" Exploit.
- * * VGT-DOKTRIN: Dieses Modul dient nicht der Sicherheit, sondern der Konversion. 
- * Es ist ein "Trojanisches Pferd" im Dashboard. Es nutzt den Spieltrieb und die 
- * Neugierde von Entwicklern, um sie in einen Sales-Funnel (Rabatt-Code) zu ziehen,
- * indem es ihnen das Gefühl gibt, das System "gehackt" zu haben.
- */
+
 ?>
 
-<!-- VGT ISOLATED STYLESHEET FÜR DAS TERMINAL -->
 <style>
     .vgt-term-wrapper {
         border-top: 3px solid #10b981; 
@@ -65,7 +56,6 @@ if (!defined('ABSPATH')) exit;
         box-shadow: none;
         text-shadow: 0 0 5px rgba(16,185,129,0.4);
     }
-    /* Kinetische Scanline Illusion für Retro-CRT-Look */
     .vgt-scanline {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
         background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
@@ -74,17 +64,14 @@ if (!defined('ABSPATH')) exit;
         pointer-events: none; 
         opacity: 0.4;
     }
-    /* Blinking Cursor Hack */
     .vgt-term-input::placeholder { color: transparent; }
     
-    /* Scrollbar Styling für das Terminal */
     .vgt-term-output::-webkit-scrollbar { width: 8px; }
     .vgt-term-output::-webkit-scrollbar-track { background: #050505; }
     .vgt-term-output::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
 </style>
 
 <div class="vis-card vgt-term-wrapper">
-    <!-- TERMINAL HEADER (Traffic Lights) -->
     <div class="vgt-term-header">
         <div style="display: flex; gap: 8px;">
             <div style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></div>
@@ -92,10 +79,9 @@ if (!defined('ABSPATH')) exit;
             <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
         </div>
         <div style="color: #666; font-size: 12px; letter-spacing: 1px;">vgt-nexus-terminal_v1.0.sh</div>
-        <div style="width: 44px;"></div> <!-- Spacer for centering -->
+        <div style="width: 44px;"></div> 
     </div>
 
-    <!-- TERMINAL BODY -->
     <div class="vgt-term-body">
         
         <div id="vgt-term-output" class="vgt-term-output">
@@ -104,26 +90,22 @@ if (!defined('ABSPATH')) exit;
             <div style="color: #64748b;">[System: ONLINE] Waiting for input. Type <span style="color:#fff;">'help'</span> for available commands.</div><br>
         </div>
 
-        <!-- TERMINAL INPUT -->
         <div class="vgt-term-input-row">
             <span style="color: #10b981; margin-right: 10px;">root@vgt-nexus:~$</span>
             <input type="text" id="vgt-term-input" class="vgt-term-input" autocomplete="off" spellcheck="false" autofocus>
         </div>
 
-        <!-- OVERLAY -->
         <div class="vgt-scanline"></div>
     </div>
 </div>
 
-<!-- VGT TERMINAL LOGIC -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('vgt-term-input');
     const output = document.getElementById('vgt-term-output');
     let isHacking = false;
 
-    // VGT DOKTRIN: Die Commands sind der Funnel. 
-    // Der dritte Befehl 'vgt-root' ist in grellem Rot der perfekte psychologische Köder.
+
     const commands = {
         'help': `Available commands:<br>
 &nbsp;&nbsp;status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Show system health<br>
@@ -152,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'matrix': "<span style='color:#10b981;'>Wake up, Neo...<br>The Sentinel has you.</span>",
     };
 
-    // Input-Handler
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !isHacking) {
             let val = this.value.trim().toLowerCase();
@@ -160,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (val === '') return;
 
-            // Output des eingegebenen Befehls
             printLine(`<span style="color: #64748b;">root@vgt-nexus:~$</span> <span style="color:#fff;">${val}</span>`);
 
             if (val === 'clear') {
@@ -168,13 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Joke-Handler für Leute, die Linux-Befehle versuchen
             if (val.startsWith('sudo ')) {
                 printLine("Nice try. This is VGT OS. 'sudo' has no power here. Use native commands.");
                 return;
             }
 
-            // TRIGGER: EASTER EGG (The Glitch Exploit)
             if (val === 'vgt-root' || val === 'vgt-egg') {
                 triggerHackSequence();
                 return;
@@ -188,7 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Halte Fokus immer auf dem Input, wenn das Terminal angeklickt wird
     document.querySelector('.vgt-term-wrapper').addEventListener('click', () => {
         if (!isHacking) input.focus();
     });
@@ -198,11 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
         line.innerHTML = text;
         line.style.marginBottom = '4px';
         output.appendChild(line);
-        output.scrollTop = output.scrollHeight; // Auto-scroll to bottom
+        output.scrollTop = output.scrollHeight; 
     }
 
-    // VGT DOKTRIN: Die Hack-Sequenz. 
-    // Muss sich asymmetrisch, schnell und "gefährlich" anfühlen. 
+
     async function triggerHackSequence() {
         isHacking = true;
         input.disabled = true;
@@ -237,7 +213,6 @@ document.addEventListener('DOMContentLoaded', function() {
         input.focus();
     }
 
-    // Helper für Asynchrone Pausen
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
