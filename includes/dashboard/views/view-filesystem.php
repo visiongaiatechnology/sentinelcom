@@ -7,24 +7,19 @@ $files = $guard->scan_permissions();
 ?>
 
 <style>
-    /* VGT Language State CSS (Zero Runtime Overhead, Strict Specificity) */
     @keyframes visFadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Base State: EN is strictly hidden mit absoluter Priorität */
     .vis-lang-en { display: none !important; }
     .vis-lang-de { animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Active EN State: DE is hidden, EN restores native display type */
     .vis-state-en .vis-lang-de { display: none !important; }
     .vis-state-en span.vis-lang-en { display: inline !important; animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Block elements restoration */
     .vis-state-en strong.vis-lang-en,
     .vis-state-en h3.vis-lang-en,
     .vis-state-en p.vis-lang-en, 
     .vis-state-en div.vis-lang-en { display: block !important; animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Toggle Switch Styling */
     .vis-toggle-wrapper { display: flex; justify-content: flex-end; margin-bottom: 20px; }
     .vis-toggle-label { display: flex; align-items: center; cursor: pointer; gap: 12px; background: rgba(15, 23, 42, 0.6); padding: 6px 14px; border-radius: 20px; border: 1px solid #334155; backdrop-filter: blur(4px); transition: all 0.3s ease; }
     .vis-toggle-label:hover { border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 0 10px rgba(6, 182, 212, 0.1); }
@@ -40,7 +35,6 @@ $files = $guard->scan_permissions();
 </style>
 
 <div id="vis-fs-container">
-    <!-- UI LANGUAGE TOGGLE -->
     <div class="vis-toggle-wrapper">
         <label class="vis-toggle-label">
             <span class="vis-toggle-text vis-text-de">DE</span>
@@ -105,7 +99,7 @@ $files = $guard->scan_permissions();
                     $icon = 'warning';
                 } elseif ($f['status'] === 'missing') {
                     $color = 'var(--vis-warning)';
-                    $badge = 'bg-red'; // oder orange
+                    $badge = 'bg-red';
                     $icon = 'hidden';
                 }
             ?>
@@ -127,7 +121,6 @@ $files = $guard->scan_permissions();
                         <?php if($f['status'] === 'secure'): ?>
                             <span class="vis-badge bg-green">SECURE</span>
                         <?php else: ?>
-                            <!-- Die PHP-generierte Fehlermeldung bleibt unangetastet, um Backend-Kopplung nicht zu brechen -->
                             <span class="vis-badge bg-red"><?php echo $f['msg']; ?></span>
                         <?php endif; ?>
                     </td>
@@ -147,22 +140,17 @@ $files = $guard->scan_permissions();
 </div>
 
 <script>
-/**
- * VGT LANGUAGE KERNEL (ZERO-OVERHEAD DOM MANAGER)
- * Synchronisiert sich mit dem globalen LocalStorage State (vis_v7_lang_preference).
- */
+
 document.addEventListener('DOMContentLoaded', () => {
     const toggle   = document.getElementById('vis-fs-lang-toggle');
     const wrapper  = document.getElementById('vis-fs-container');
     const langKey  = 'vis_v7_lang_preference';
 
-    // 1. Initial State Check (Synchronisation mit Dashboard)
     if (localStorage.getItem(langKey) === 'en') {
         toggle.checked = true;
         wrapper.classList.add('vis-state-en');
     }
 
-    // 2. State Mutator Event
     toggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             wrapper.classList.add('vis-state-en');
@@ -175,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Listener für Cross-Tab Synchronisation
     window.addEventListener('vgt_lang_sync', () => {
         if (localStorage.getItem(langKey) === 'en') {
             toggle.checked = true;
