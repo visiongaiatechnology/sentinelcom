@@ -26,7 +26,7 @@ class VIS_Aegis {
     private array $patterns = [
         'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
         'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
-        'sqli'      => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
+        'sqli'      => '/(?:union[\s\/\*!0-9\-\+]+(?:all[\s\/\*!0-9\-\+]+)?select|information_schema|waitfor[\s\/\*!0-9\-\+]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
         'xss'       => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
         'gql_recon' => '/(?:__schema|__type)\s*(?:\{|\(|:)/i',
         'ua'        => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
