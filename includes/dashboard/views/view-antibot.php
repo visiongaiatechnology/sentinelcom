@@ -2,17 +2,14 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-// --- AUTONOMOUS STORAGE LOGIC (O(1) STATE MUTATION FOR DYNAMIC ARRAYS) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vis_context']) && $_POST['vis_context'] === 'antibot') {
     if (isset($_POST['vis_save_config']) && check_admin_referer('vis_save_config')) {
         $opt = get_option('vis_config', []);
         
-        // Sanitization and Binding
         $opt['antibot_enabled'] = isset($_POST['vis_config']['antibot_enabled']) ? 1 : 0;
         $opt['antibot_difficulty'] = intval($_POST['vis_config']['antibot_difficulty'] ?? 3);
         $opt['antibot_custom_hooks'] = isset($_POST['vis_config']['antibot_custom_hooks']) ? array_map('sanitize_text_field', $_POST['vis_config']['antibot_custom_hooks']) : [];
         
-        // Native Integrations Binding
         $native_keys = ['antibot_comments', 'antibot_woo', 'antibot_cf7', 'antibot_wpforms', 'antibot_gform'];
         foreach ($native_keys as $key) {
             $opt[$key] = isset($_POST['vis_config'][$key]) ? 1 : 0;
@@ -38,7 +35,6 @@ $all_plugins = get_plugins();
 ?>
 
 <style>
-    /* VGT Language State CSS */
     @keyframes visFadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
     .vis-lang-en { display: none !important; }
     .vis-lang-de { animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -96,7 +92,6 @@ $all_plugins = get_plugins();
             VGT Antibot eliminates the need for captchas or checkboxes. Legitimate users invisibly solve a cryptographic SHA-256 challenge (Proof-of-Work) in the background. Bots are blocked because solving these challenges is computationally and economically inefficient for mass attacks. The engine is deeply anchored within the TITAN network.
         </p>
 
-        <!-- CORE SETTINGS -->
         <div class="vis-switch-row" style="background: rgba(15, 23, 42, 0.4); padding: 20px; border-radius: 8px; border: 1px solid var(--vis-border); margin-bottom: 20px;">
             <div class="vis-label-group">
                 <strong class="vis-lang-de">Global Infiltration aktivieren</strong>
@@ -126,7 +121,6 @@ $all_plugins = get_plugins();
             </div>
         </div>
 
-        <!-- NATIVE INTEGRATIONS -->
         <div style="margin-bottom: 30px;">
             <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 14px; display: flex; align-items: center; gap: 8px;">
                 <span class="dashicons dashicons-admin-plugins" style="color:#f59e0b;"></span> NATIVE INTEGRATIONEN
@@ -159,7 +153,6 @@ $all_plugins = get_plugins();
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px;">
-            <!-- SCANNER -->
             <div style="border: 1px solid var(--vis-border); border-radius: 8px; padding: 25px; background: rgba(255,255,255,0.02);">
                 <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 14px;"><span class="dashicons dashicons-search" style="color:#f59e0b;"></span> DEEP PLUGIN SCANNER</h4>
                 <p class="vis-lang-de" style="color: var(--vis-text-secondary); font-size: 12px; margin-bottom: 15px;">Extrahieren Sie Ausführungspfade (Hooks) aus beliebigen installierten Plugins via AST-Regex Parsing.</p>
@@ -183,7 +176,6 @@ $all_plugins = get_plugins();
                 </div>
             </div>
 
-            <!-- ACTIVE HOOKS MATRIX -->
             <div style="border: 1px solid var(--vis-border); border-radius: 8px; padding: 25px; background: rgba(255,255,255,0.02);">
                 <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 14px;"><span class="dashicons dashicons-admin-links" style="color:#f59e0b;"></span> DYNAMIC EXECUTION HOOKS</h4>
                 <p class="vis-lang-de" style="color: var(--vis-text-secondary); font-size: 12px;">Hooks, die zusätzlich durch die PoW Matrix geschützt werden.</p>
@@ -210,7 +202,6 @@ $all_plugins = get_plugins();
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Language Toggle
     const toggle = document.getElementById('vis-antibot-lang-toggle');
     const wrapper = document.getElementById('vis-antibot-container');
     const langKey = 'vis_v7_lang_preference';
@@ -238,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else wrapper.classList.remove('vis-state-en');
     });
 
-    // Scanner Logic (AJAX)
     const scanBtn = document.getElementById('vis-scan-hooks-btn');
     if (scanBtn) {
         scanBtn.addEventListener('click', async () => {
