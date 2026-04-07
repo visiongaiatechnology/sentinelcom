@@ -11,6 +11,7 @@ class VIS_Dashboard_View {
     
     private $tabs = [
         'overview'   => ['icon' => 'dashicons-chart-area', 'label' => 'COMMAND CENTER'],
+        'threads'    => ['icon' => 'dashicons-hidden',     'label' => 'THREADS'],
         'integrity'  => ['icon' => 'dashicons-search',     'label' => 'INTEGRITY MONITOR'],
         'aegis'      => ['icon' => 'dashicons-shield',     'label' => 'AEGIS FIREWALL'],
         'antibot'    => ['icon' => 'dashicons-shield-alt', 'label' => 'ANTIBOT ENGINE'], // V2 ADDITION
