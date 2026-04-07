@@ -5,16 +5,13 @@ if (!defined('ABSPATH')) exit;
 global $wpdb;
 $table_bans = defined('VIS_TABLE_BANS') ? $wpdb->prefix . VIS_TABLE_BANS : $wpdb->prefix . 'vis_bans';
 
-// --- PAGINATION LOGIK ---
-$bans_per_page = 20; // Anzahl der Bans pro Seite
+$bans_per_page = 20; 
 $current_page = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
 $offset = ($current_page - 1) * $bans_per_page;
 
-// Gesamtzahl ermitteln (für Seiten-Kalkulation)
 $total_bans = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_bans}");
 $total_pages = ceil($total_bans / $bans_per_page);
 
-// Bans für die aktuelle Seite laden
 $bans = $wpdb->get_results($wpdb->prepare(
     "SELECT * FROM {$table_bans} ORDER BY banned_at DESC LIMIT %d OFFSET %d",
     $bans_per_page, $offset
@@ -22,7 +19,6 @@ $bans = $wpdb->get_results($wpdb->prepare(
 ?>
 
 <style>
-/* VGT Cerberus UI Styles */
 
 h2, h3 {
     color: #ffffff !important;
@@ -53,7 +49,7 @@ h2, h3 {
     text-transform: uppercase;
     font-size: 12px;
     letter-spacing: 0.05em;
-    border-bottom: 2px solid rgba(212, 175, 55, 0.3); /* VGT Gold Accent */
+    border-bottom: 2px solid rgba(212, 175, 55, 0.3); 
 }
 .vgt-cerberus-table td {
     padding: 16px;
@@ -67,7 +63,7 @@ h2, h3 {
     background: rgba(255, 255, 255, 0.02);
 }
 .vgt-cerberus-ip {
-    color: #ef4444; /* VGT Red */
+    color: #ef4444; 
     font-family: 'JetBrains Mono', monospace, sans-serif;
     font-size: 15px;
     font-weight: 700;
@@ -84,8 +80,8 @@ h2, h3 {
 .vgt-cerberus-payload {
     white-space: pre-wrap;
     word-wrap: break-word;
-    background: #020617; /* Deep terminal black */
-    color: #fbbf24; /* Alert yellow */
+    background: #020617; 
+    color: #fbbf24;
     padding: 12px;
     border-radius: 6px;
     border: 1px solid #334155;
@@ -114,7 +110,6 @@ h2, h3 {
     color: #fff;
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
-/* Pagination Styles */
 .vgt-pagination {
     display: flex;
     justify-content: center;
@@ -215,7 +210,6 @@ h2, h3 {
                                     </span>
                                 </td>
                                 <td>
-                                    <!-- VGT KERNEL FIX: Strikte XSS-Isolation für Payload-Logs -->
                                     <pre class="vgt-cerberus-payload"><?php 
                                         echo esc_html($ban->reason); 
                                         if (!empty($ban->request_uri)) {
@@ -236,7 +230,6 @@ h2, h3 {
         </div>
 
         <?php 
-        // --- PAGINATION RENDERER ---
         if ($total_pages > 1): 
             $pagination_links = paginate_links([
                 'base'      => add_query_arg('paged', '%#%'),
@@ -263,14 +256,12 @@ function vis_unban_ip(ip) {
         return;
     }
     
-    // AJAX Request an das Dashboard
     jQuery.post(ajaxurl, {
         action: 'vis_dashboard_unban_ip',
         ip: ip,
         nonce: '<?php echo wp_create_nonce("vis_dashboard_nonce"); ?>' 
     }, function(response) {
         if (response.success) {
-            // Seite neu laden um die Liste zu aktualisieren
             location.reload();
         } else {
             alert('FEHLER: ' + (response.data || 'Datenbank-Operation fehlgeschlagen.'));
