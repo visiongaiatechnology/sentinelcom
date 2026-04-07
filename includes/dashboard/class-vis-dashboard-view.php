@@ -2,11 +2,6 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-/**
- * CORE: DASHBOARD VIEW CONTROLLER
- * Status: GOLD STATUS (HARDENED)
- * Modifikation: V2 Antibot Integration
- */
 class VIS_Dashboard_View {
     
     private $tabs = [
@@ -14,7 +9,7 @@ class VIS_Dashboard_View {
         'threads'    => ['icon' => 'dashicons-hidden',     'label' => 'THREADS'],
         'integrity'  => ['icon' => 'dashicons-search',     'label' => 'INTEGRITY MONITOR'],
         'aegis'      => ['icon' => 'dashicons-shield',     'label' => 'AEGIS FIREWALL'],
-        'antibot'    => ['icon' => 'dashicons-shield-alt', 'label' => 'ANTIBOT ENGINE'], // V2 ADDITION
+        'antibot'    => ['icon' => 'dashicons-shield-alt', 'label' => 'ANTIBOT ENGINE'],
         'cerberus'   => ['icon' => 'dashicons-shield',     'label' => 'CERBERUS BAN'],
         'titan'      => ['icon' => 'dashicons-lock',       'label' => 'TITAN HARDENING'],
         'mudeployer' => ['icon' => 'dashicons-admin-network', 'label' => 'MU-DEPLOYER'],
