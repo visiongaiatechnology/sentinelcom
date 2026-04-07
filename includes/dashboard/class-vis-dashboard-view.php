@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit;
 /**
  * CORE: DASHBOARD VIEW CONTROLLER
  * Status: GOLD STATUS (HARDENED)
- * Modifikation: MU-Deployer Integration (Easter Egg V7 Path)
+ * Modifikation: V2 Antibot Integration
  */
 class VIS_Dashboard_View {
     
@@ -13,23 +13,23 @@ class VIS_Dashboard_View {
         'overview'   => ['icon' => 'dashicons-chart-area', 'label' => 'COMMAND CENTER'],
         'integrity'  => ['icon' => 'dashicons-search',     'label' => 'INTEGRITY MONITOR'],
         'aegis'      => ['icon' => 'dashicons-shield',     'label' => 'AEGIS FIREWALL'],
+        'antibot'    => ['icon' => 'dashicons-shield-alt', 'label' => 'ANTIBOT ENGINE'], // V2 ADDITION
         'cerberus'   => ['icon' => 'dashicons-shield',     'label' => 'CERBERUS BAN'],
         'titan'      => ['icon' => 'dashicons-lock',       'label' => 'TITAN HARDENING'],
-        'mudeployer' => ['icon' => 'dashicons-admin-network', 'label' => 'MU-DEPLOYER'], // NEU: Instanz 0 Boot
+        'mudeployer' => ['icon' => 'dashicons-admin-network', 'label' => 'MU-DEPLOYER'],
         'airlock'    => ['icon' => 'dashicons-upload',     'label' => 'AIRLOCK GUARD'],
         'filesystem' => ['icon' => 'dashicons-category',   'label' => 'DATENSICHERHEIT'],
         'hades'      => ['icon' => 'dashicons-hidden',     'label' => 'HADES STEALTH'],
         'styx'       => ['icon' => 'dashicons-networking', 'label' => 'STYX CONTROL'],
-        'oracle'     => ['icon' => 'dashicons-list-view',    'label' => 'ORACLE SCANNER'],
-        'console'    => ['icon' => 'dashicons-editor-code', 'label' => 'VGT CONSOLE'], // NEU: Terminal Easter Egg
+        'oracle'     => ['icon' => 'dashicons-list-view',  'label' => 'ORACLE SCANNER'],
+        'console'    => ['icon' => 'dashicons-editor-code','label' => 'VGT CONSOLE'],
         'logs'       => ['icon' => 'dashicons-list-view',  'label' => 'SYSTEM LOGS'],
     ];
 
     public function render() {
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'overview';
         
-        // Whitelist Update: mudeployer hinzugefügt
-        $is_config_tab = in_array($active_tab, ['aegis', 'titan', 'hades', 'styx', 'airlock', 'mudeployer']);
+        $is_config_tab = in_array($active_tab, ['aegis', 'titan', 'hades', 'styx', 'airlock', 'mudeployer', 'antibot']);
         
         $opt = get_option('vis_config', []); 
         
@@ -74,7 +74,7 @@ class VIS_Dashboard_View {
                     <h1>' . $label . '</h1>
                 </div>';
         
-        if (in_array($tab, ['aegis', 'titan', 'hades', 'styx', 'airlock', 'mudeployer'])) {
+        if (in_array($tab, ['aegis', 'titan', 'hades', 'styx', 'airlock', 'mudeployer', 'antibot'])) {
             echo '<button type="submit" name="vis_save_config" value="1" class="vis-btn vis-btn-primary">
                     <span class="dashicons dashicons-saved"></span> CONFIG SAVE
                   </button>';

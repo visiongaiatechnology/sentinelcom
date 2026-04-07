@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: VGT Sentinel
- * Description: Community Edition
- * Version: 1.1.1 APEX CORE
+ * Description: Community Edition V2
+ * Version: 1.5.0 APEX CORE
  * Author: VisionGaiaTechnology
  * Author URI: https://visiongaiatechnology.de
  * License: AGPLv3
@@ -12,7 +12,7 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- SYSTEM KONSTANTEN ---
-define('VIS_VERSION', '1.1.1');
+define('VIS_VERSION', '1.5.0');
 define('VIS_PATH', plugin_dir_path(__FILE__));
 define('VIS_URL', plugin_dir_url(__FILE__));
 define('VIS_SENTINEL_ICON', VIS_URL . 'Sentinel.png');
@@ -44,6 +44,7 @@ spl_autoload_register(function ($class) {
         'VIS_Cerberus'              => 'includes/modules/cerberus/class-vis-cerberus.php',
         'VIS_Styx_Lite'             => 'includes/modules/styx/class-vis-styx-lite.php',
         'VIS_Filesystem_Guard'      => 'includes/modules/filesystem/class-vis-filesystem-guard.php',
+        'VIS_Antibot'               => 'includes/modules/antibot/class-vis-antibot.php', // V2 ADDITION
         
         // UI
         'VIS_Dashboard_Core'        => 'includes/dashboard/class-vis-dashboard-core.php',
@@ -106,23 +107,13 @@ register_deactivation_hook(__FILE__, function() {
 });
 
 // --- BOOTSTRAP (VGT KERNEL PRIORITY QUEUE) ---
-// VGT FIX: Priority -9999 zwingt Sentinel dazu, vor ALLEN anderen Plugins zu booten.
 add_action('plugins_loaded', function() {
     
     // ==========================================
     // TIER 1: PERIMETER & PAYLOAD DEFENSE (CRITICAL)
     // ==========================================
-    
-    // 1. CERBERUS (Layer 1: IP Perimeter Shield)
-    // Lädt als allererstes. Ist die IP gebannt, terminiert der Request hier in Millisekunden.
-    // Verhindert massiven CPU-Waste durch überflüssige Payload-Scans.
     new VIS_Cerberus();
-
-    // Lade globale Konfiguration nur einmal für den restlichen Stack
     $options = get_option('vis_config', []);
-
-    // 2. AEGIS (Layer 2: Application Firewall)
-    // Scannt Payloads (GET/POST/URI). Läuft nur, wenn Cerberus die IP durchgelassen hat.
     new VIS_Aegis($options); 
 
     // ==========================================
@@ -131,7 +122,7 @@ add_action('plugins_loaded', function() {
     new VIS_Compatibility_Manager();
 
     // ==========================================
-    // TIER 3: SECONDARY SECURITY MODULES
+    // TIER 3: SECONDARY SECURITY MODULES & ENGINE FUSION
     // ==========================================
     new VIS_Titan($options);
     new VIS_Hades($options);
@@ -139,6 +130,9 @@ add_action('plugins_loaded', function() {
     new VIS_Airlock();
     new VIS_Ghost_Trap();
     new VIS_Chronos();
+    
+    // V2 ARCHITECTURE: ANTIBOT PROOF-OF-WORK ENGINE
+    new VIS_Antibot($options);
 
     // ==========================================
     // TIER 4: ADMIN DASHBOARD
@@ -147,4 +141,4 @@ add_action('plugins_loaded', function() {
         new VIS_Dashboard_Core();
     }
     
-}, -9999); // ABSOLUTE EXECUTION PRIORITY
+}, -9999);

@@ -11,11 +11,6 @@
 > *"No external libraries. No blind trust. No compromise."*
 > *AGPLv3 — Open Source Core. Built for humans, not for SaaS margins.*
 
-
-<img width="675" height="675" alt="TGL Covers" src="https://github.com/user-attachments/assets/e7920fcd-a771-45d1-968a-76dcdad0a716" />
-
-
-
 ---
 
 ## 🔍 What is VGT Sentinel?
@@ -24,8 +19,7 @@ VGT Sentinel Community Edition is a **modular, zero-dependency WordPress securit
 
 It is the open-source core of the VGT Sentinel suite — a battle-hardened, multi-layered defense system built on a **Zero-Trust architecture**. Every request is inspected, every header hardened, every upload analyzed, every file hashed.
 
-<img width="1731" height="910" alt="{0BD1AB9F-2C98-4420-827E-B34972F0C717}" src="https://github.com/user-attachments/assets/1c7d9708-afda-440f-b4d9-99f7ec50b39a" />
-
+<img width="1737" height="914" alt="{1D2D5C45-A94D-4041-AE56-1791A8E40496}" src="https://github.com/user-attachments/assets/feef431e-a042-4e6c-81f3-fcbeeb6cc8b8" />
 
 
 ```
@@ -96,12 +90,10 @@ STYX LITE (Outbound Control)
 
 ### ⚡ 2.1 AEGIS — Web Application Firewall
 
+<img width="1735" height="910" alt="{11C1AE23-D3BF-4E79-8E60-EB528AE623CF}" src="https://github.com/user-attachments/assets/c3261cb4-26e1-4c5e-b6a0-dd489456cc8b" />
+
+
 Stream-based WAF for real-time payload inspection.
-
-<img width="1734" height="910" alt="{BB3396A0-73EA-48D9-83E9-B996F387E50D}" src="https://github.com/user-attachments/assets/3ff5f406-5989-488d-bcea-4a8d408946cb" />
-
-
-
 
 | Parameter | Value |
 |---|---|
@@ -116,9 +108,6 @@ Stream-based WAF for real-time payload inspection.
 ### 🔩 2.2 TITAN — Kernel Hardening
 
 Application-layer hardening and server signature masking.
-
-<img width="1731" height="908" alt="{86804D06-F36C-4FE3-BAC4-353684BB3E32}" src="https://github.com/user-attachments/assets/2d11e83f-9bfb-4e27-9f8e-5a0fbc7c3a16" />
-
 
 ```
 Headers Enforced:
@@ -146,8 +135,7 @@ Protected Paths (.htaccess):
 
 Architecture obfuscation to prevent automated WordPress fingerprinting.
 
-<img width="1732" height="911" alt="{A6E67F8E-C5A5-421A-982B-005432DDA65B}" src="https://github.com/user-attachments/assets/fe21e604-fce3-4b3a-9ba2-215fe3fb2d28" />
-
+<img width="1733" height="909" alt="{63606BBB-23A0-442C-8AAB-926015A1DB45}" src="https://github.com/user-attachments/assets/ab1b7486-37b3-4e22-b720-749675a13d8a" />
 
 
 **URL Rewrite Map:**
@@ -169,9 +157,6 @@ Architecture obfuscation to prevent automated WordPress fingerprinting.
 
 Pre-authentication IP validation and brute-force defense.
 
-<img width="1736" height="905" alt="{5784BE3F-BA54-4339-A930-5535EA1BE535}" src="https://github.com/user-attachments/assets/42f0844f-813c-4e01-963d-7dba4261ba88" />
-
-
 | Feature | Detail |
 |---|---|
 | **True-IP Detection** | Native Cloudflare CIDR validation — prevents X-Forwarded-For spoofing |
@@ -184,8 +169,7 @@ Pre-authentication IP validation and brute-force defense.
 
 Network-layer control against data exfiltration and supply-chain attacks.
 
-<img width="1736" height="912" alt="{25C4C41C-68D4-4D0F-B99A-68298055B168}" src="https://github.com/user-attachments/assets/536e4a96-a94b-4e47-bfd0-85f5f2414442" />
-
+<img width="1741" height="908" alt="{6D353779-0E75-4EA0-9DA5-72DED957C004}" src="https://github.com/user-attachments/assets/9d382291-9f97-4ba2-bf63-2662341c237a" />
 
 
 ```
@@ -204,8 +188,7 @@ Supply-Chain Protection:
 
 Binary-level analysis of all file uploads (`multipart/form-data`).
 
-<img width="1737" height="906" alt="{3BC2B51D-5604-499E-8927-A60BF50A11C1}" src="https://github.com/user-attachments/assets/6c7284bf-6f62-44ba-837f-0c71fcbec30f" />
-
+<img width="1736" height="907" alt="{12331AA5-E93D-487F-84BD-656ADA077DF9}" src="https://github.com/user-attachments/assets/247daa1f-0901-405a-8e96-a763d1e46caa" />
 
 
 | Feature | Detail |
@@ -262,20 +245,6 @@ Execution Safety:
 
 ---
 
-
-<img width="1735" height="905" alt="{5CCBD528-98F8-42E9-B97D-CDA8E46160C0}" src="https://github.com/user-attachments/assets/c147ab1b-0d72-47b6-ac81-17d23df83299" />
-
-
-
-<img width="1738" height="910" alt="{34C68E72-49D7-476E-B21E-81598818FF8A}" src="https://github.com/user-attachments/assets/b239a694-a0ae-4eda-a05d-6ec0f7ecd2ac" />
-
-
-<img width="1738" height="908" alt="{826B7BD7-D671-4207-B8C4-9506258C1E97}" src="https://github.com/user-attachments/assets/113da143-00b6-43d7-8a0a-ab26378eba4f" />
-
-
-<img width="1738" height="907" alt="{FF21E5FC-7D09-4C19-ACC7-B34866C52792}" src="https://github.com/user-attachments/assets/391325d6-f20d-447e-a1b9-2dfa96f9d8c0" />
-
-
 ## ⚠️ System Boundaries — Silber vs. Platin
 
 > **DISCLAIMER:** The Community Edition (Silber Status) operates on a deterministic rule engine. It provides a robust shield against standardized, automated botnets, scrapers, and known attack vectors.
@@ -306,7 +275,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 ```bash
 # 1. Clone into WordPress plugins directory
 cd /var/www/html/wp-content/plugins/
-git clone https://github.com/visiongaiatechnology/sentinelcom
+git clone [https://github.com/visiongaiatechnology/vgt-sentinel](https://github.com/visiongaiatechnology/sentinelcom)
 
 # 2. Activate in WordPress Admin
 # Plugins → VGT Sentinel Community Edition → Activate
