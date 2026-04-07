@@ -110,18 +110,31 @@ class VIS_Airlock {
     private function log_threat($filename) {
         if (!class_exists('VIS_Dashboard_Core')) return;
         
-        error_log('[VISIONGAIA AIRLOCK] Neutralized Threat: ' . sanitize_file_name($filename) . ' from ' . $_SERVER['REMOTE_ADDR']);
+        // VGT FIX: WP Plugin Check - Variables Sanitization
+        $safe_filename = sanitize_file_name($filename);
+        $safe_ip       = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '0.0.0.0';
+        
+        error_log('[VISIONGAIA AIRLOCK] Neutralized Threat: ' . $safe_filename . ' from ' . $safe_ip);
         
         global $wpdb;
         $table = $wpdb->prefix . 'vis_logs';
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table'")) {
-            $wpdb->insert($table, [
-                'module'   => 'AIRLOCK',
-                'type'     => 'BLOCK',
-                'message'  => 'Malicious Payload in file: ' . $filename,
-                'ip'       => $_SERVER['REMOTE_ADDR'],
-                'severity' => 10
-            ]);
+        
+        // VGT FIX: WP Plugin Check - Prepared Statement required even for SHOW TABLES
+        $query = $wpdb->prepare("SHOW TABLES LIKE %s", $wpdb->esc_like($table));
+        
+        if ($wpdb->get_var($query) === $table) {
+            $wpdb->insert(
+                $table, 
+                [
+                    'module'   => 'AIRLOCK',
+                    'type'     => 'BLOCK',
+                    'message'  => 'Malicious Payload in file: ' . $safe_filename,
+                    'ip'       => $safe_ip,
+                    'severity' => 10
+                ],
+                // VGT FIX: Explizite Format-Deklaration beruhigt den Plugin-Checker
+                ['%s', '%s', '%s', '%s', '%d']
+            );
         }
     }
 }
