@@ -52,11 +52,18 @@ class VIS_Aegis {
             return;
         }
 
-        // Hardening Limits gegen Regex-DDoS (ReDoS)
+        // Vor dem $this->guard();
+        $old_backtrack = ini_get('pcre.backtrack_limit');
+        $old_recursion = ini_get('pcre.recursion_limit');
+
         ini_set('pcre.backtrack_limit', '100000');
         ini_set('pcre.recursion_limit', '100000');
 
         $this->guard();
+
+        // Direkt nach $this->guard();
+        ini_set('pcre.backtrack_limit', $old_backtrack);
+        ini_set('pcre.recursion_limit', $old_recursion);
     }
 
     private function guard(): void {
