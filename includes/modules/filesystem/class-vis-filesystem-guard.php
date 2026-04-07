@@ -18,7 +18,7 @@ class VIS_Filesystem_Guard {
         ['path' => 'wp-content/plugins/',   'type' => 'dir',  'rec' => '0755', 'label' => 'Plugin Directory'],
         ['path' => 'wp-admin/',             'type' => 'dir',  'rec' => '0755', 'label' => 'WP Admin Area'],
         ['path' => 'wp-content/',           'type' => 'dir',  'rec' => '0755', 'label' => 'Content Area'],
-        ['path' => 'wp-config.php',         'type' => 'file', 'rec' => '0600', 'label' => 'WP Config (Critical)']
+        ['path' => 'wp-config.php',         'type' => 'file', 'rec' => '0400', 'label' => 'WP Config (Critical)']
     ];
 
     public function scan_permissions() {
