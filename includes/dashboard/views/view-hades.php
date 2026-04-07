@@ -2,12 +2,10 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit; 
 
-// Initialisiere Hades um Nginx Rules zu holen (falls nötig)
 if (!class_exists('VIS_Hades')) require_once VIS_PATH . 'includes/modules/hades/class-vis-hades.php';
-$hades_instance = new VIS_Hades([]); // Dummy instance just for logic helper
+$hades_instance = new VIS_Hades([]); 
 $is_nginx = (strpos($_SERVER['SERVER_SOFTWARE'], 'nginx') !== false);
 
-// Fallback Daten-Extraktion
 if (!isset($opt)) {
     $opt = get_option('vis_config', []);
 }
@@ -16,7 +14,6 @@ $hades_active = !empty($opt['hades_enabled']) ? 1 : 0;
 $login_slug = isset($opt['hades_login_slug']) && !empty($opt['hades_login_slug']) ? esc_attr($opt['hades_login_slug']) : 'wp-login.php';
 $admin_slug = isset($opt['hades_admin_slug']) && !empty($opt['hades_admin_slug']) ? esc_attr($opt['hades_admin_slug']) : 'wp-admin';
 
-// Mapping-Daten für die UI-Matrix
 $path_mappings = [
     ['old' => 'wp-content/themes',  'new' => 'content/ui'],
     ['old' => 'wp-content/plugins', 'new' => 'content/lib'],
@@ -25,26 +22,20 @@ $path_mappings = [
 ];
 ?>
 
-<!-- VGT ISOLATED STYLESHEET (ZERO-DEPENDENCY) -->
 <style>
-    /* VGT Language State CSS (Zero Runtime Overhead, Strict Specificity) */
     @keyframes visFadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Base State: EN is strictly hidden mit absoluter Priorität */
     .vis-lang-en { display: none !important; }
     .vis-lang-de { animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Active EN State: DE is hidden, EN restores native display type */
     .vis-state-en .vis-lang-de { display: none !important; }
     .vis-state-en span.vis-lang-en { display: inline !important; animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Block elements restoration */
     .vis-state-en strong.vis-lang-en,
     .vis-state-en h4.vis-lang-en,
     .vis-state-en p.vis-lang-en, 
     .vis-state-en div.vis-lang-en { display: block !important; animation: visFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     
-    /* Language Toggle Switch Styling */
     .vis-toggle-wrapper { display: flex; justify-content: flex-end; margin-bottom: 20px; }
     .vis-toggle-label { display: flex; align-items: center; cursor: pointer; gap: 12px; background: rgba(15, 23, 42, 0.6); padding: 6px 14px; border-radius: 20px; border: 1px solid #334155; backdrop-filter: blur(4px); transition: all 0.3s ease; }
     .vis-toggle-label:hover { border-color: rgba(6, 182, 212, 0.4); box-shadow: 0 0 10px rgba(6, 182, 212, 0.1); }
@@ -58,7 +49,6 @@ $path_mappings = [
     .vis-switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #8b5cf6; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 8px rgba(139, 92, 246, 0.6); }
     .vis-state-en .vis-switch-thumb { transform: translateX(20px); }
 
-    /* Module Specific Toggle (Hades) */
     .vgt-hades-toggle { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
     .vgt-hades-toggle input { opacity: 0; width: 0; height: 0; }
     .vgt-hades-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s cubic-bezier(0.4, 0.0, 0.2, 1); border-radius: 24px; }
@@ -72,7 +62,6 @@ $path_mappings = [
 </style>
 
 <div id="vis-hades-container">
-    <!-- UI LANGUAGE TOGGLE -->
     <div class="vis-toggle-wrapper">
         <label class="vis-toggle-label">
             <span class="vis-toggle-text vis-text-de">DE</span>
@@ -94,7 +83,6 @@ $path_mappings = [
             </div>
         </div>
 
-        <!-- MAIN TOGGLE -->
         <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--vis-border); border-radius: 8px; padding: 20px; margin-bottom: 30px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -110,7 +98,6 @@ $path_mappings = [
             </div>
         </div>
 
-        <!-- SYSTEM PATH OBFUSCATION MATRIX -->
         <div style="margin-bottom: 30px;">
             <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 14px; display: flex; align-items: center; gap: 8px;">
                 <span class="dashicons dashicons-randomize" style="color: #8b5cf6;"></span>
@@ -144,7 +131,6 @@ $path_mappings = [
             </div>
         </div>
 
-        <!-- CUSTOM ENTRY POINTS -->
         <div style="padding-top: 20px; border-top: 1px solid var(--vis-border);">
             <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 14px;">CUSTOM ENTRY POINTS</h4>
             
@@ -175,7 +161,6 @@ $path_mappings = [
             </div>
         </div>
 
-        <!-- NGINX WARNING / MANUAL CONFIG -->
         <?php if ($is_nginx && $hades_active): ?>
             <div style="margin-top:30px; padding:20px; background:rgba(245, 158, 11, 0.05); border:1px solid rgba(245, 158, 11, 0.3); border-radius:6px;">
                 <div style="display:flex; gap:10px; color:#f59e0b; margin-bottom:10px; align-items: center;">
@@ -203,7 +188,6 @@ rewrite ^/core/(.*) /wp-includes/$1 last;
             </div>
         <?php endif; ?>
 
-        <!-- APACHE INFO -->
         <?php if (!$is_nginx && $hades_active): ?>
              <div style="margin-top:30px; padding:15px 20px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:6px; color:#10b981; font-size:13px; display: flex; align-items: center; gap: 10px;">
                 <span class="dashicons dashicons-yes" style="font-size: 20px; width: 20px; height: 20px;"></span>
@@ -218,22 +202,17 @@ rewrite ^/core/(.*) /wp-includes/$1 last;
 </div>
 
 <script>
-/**
- * VGT LANGUAGE KERNEL (ZERO-OVERHEAD DOM MANAGER)
- * Synchronisiert sich mit dem globalen LocalStorage State (vis_v7_lang_preference).
- */
+
 document.addEventListener('DOMContentLoaded', () => {
     const toggle   = document.getElementById('vis-hades-lang-toggle');
     const wrapper  = document.getElementById('vis-hades-container');
     const langKey  = 'vis_v7_lang_preference';
 
-    // 1. Initial State Check (Synchronisation mit Dashboard)
     if (localStorage.getItem(langKey) === 'en') {
         toggle.checked = true;
         wrapper.classList.add('vis-state-en');
     }
 
-    // 2. State Mutator Event
     toggle.addEventListener('change', (e) => {
         if (e.target.checked) {
             wrapper.classList.add('vis-state-en');
@@ -246,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 3. Listener für Cross-Tab Synchronisation
     window.addEventListener('vgt_lang_sync', () => {
         if (localStorage.getItem(langKey) === 'en') {
             toggle.checked = true;
