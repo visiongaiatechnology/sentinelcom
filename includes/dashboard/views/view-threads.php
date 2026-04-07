@@ -2,41 +2,32 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
-/**
- * MODULE: VGT THREAT RADAR (PSYCHOMETRICS)
- * Status: DIAMANT SUPREME (Zero-Dependency SVG Data Visualization)
- * Logic: Liest live DB-Metriken aus und visualisiert die Abwehrleistung.
- * Implementiert einen kognitiven Upsell-Vektor (Blind-Spot Visualisierung).
- */
 
 global $wpdb;
 
-// Tabellen-Referenzen sichern
+
 $table_logs = defined('VIS_TABLE_LOGS') ? $wpdb->prefix . VIS_TABLE_LOGS : $wpdb->prefix . 'vis_omega_logs';
 $table_bans = defined('VIS_TABLE_BANS') ? $wpdb->prefix . VIS_TABLE_BANS : $wpdb->prefix . 'vis_apex_bans';
 
-// O(1) Metriken-Extraktion
+
 $count_aegis = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_logs} WHERE module LIKE '%AEGIS%'");
 $count_bans  = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_bans}");
 $count_trap  = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_bans} WHERE reason LIKE '%GHOST TRAP%'");
 
-// Dynamische Limit-Kalkulation für die SVG-Kreise (Gauge-Füllung)
-// Setzt das Limit auf den höchsten Wert + 20%, minimal aber 100.
+
 $max_val = max(100, $count_aegis * 1.2, $count_bans * 1.2, $count_trap * 1.5);
 
 $pct_aegis = min(100, round(($count_aegis / $max_val) * 100));
 $pct_bans  = min(100, round(($count_bans / $max_val) * 100));
 $pct_trap  = min(100, round(($count_trap / $max_val) * 100));
 
-// --- LIVE THREAT STREAM EXTRAKTION ---
-// O(1) Limitierte Queries um Shared Hosting DBs zu schonen
+
 $query_logs = "SELECT timestamp, module as event_type, message, ip FROM {$table_logs} ORDER BY id DESC LIMIT 6";
 $query_bans = "SELECT banned_at as timestamp, 'CERBERUS BAN' as event_type, reason as message, ip FROM {$table_bans} ORDER BY id DESC LIMIT 6";
 
 $raw_logs = $wpdb->get_results($query_logs, ARRAY_A);
 $raw_bans = $wpdb->get_results($query_bans, ARRAY_A);
 
-// Arrays fusionieren und asynchron im RAM sortieren (verhindert langsame UNION Queries in MySQL)
 $threat_stream = array_merge($raw_logs ?: [], $raw_bans ?: []);
 usort($threat_stream, function($a, $b) {
     return strtotime($b['timestamp']) <=> strtotime($a['timestamp']);
@@ -44,7 +35,6 @@ usort($threat_stream, function($a, $b) {
 $threat_stream = array_slice($threat_stream, 0, 6);
 ?>
 
-<!-- VGT ISOLIERTE RADAR STYLES (ZERO OVERHEAD) -->
 <style>
     .vgt-radar-container {
         display: grid;
@@ -69,7 +59,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
         transform: translateY(-4px);
     }
     
-    /* Native SVG Gauge Styles */
     .vgt-circular-chart {
         display: block;
         margin: 0 auto;
@@ -85,7 +74,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
         fill: none;
         stroke-width: 2.5;
         stroke-linecap: round;
-        /* Animation wird via JS initialisiert */
         stroke-dasharray: 0, 100;
         transition: stroke-dasharray 1.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -111,7 +99,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
         line-height: 1.4;
     }
 
-    /* Modul Spezifische Farben & Glows */
     .vgt-card-aegis { border-top: 3px solid #00e5ff; }
     .vgt-card-aegis:hover { border-color: rgba(0, 229, 255, 0.4); box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1); }
     .vgt-card-aegis .vgt-circle { stroke: #00e5ff; filter: drop-shadow(0 0 4px rgba(0,229,255,0.6)); }
@@ -124,7 +111,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
     .vgt-card-trap:hover { border-color: rgba(255, 183, 3, 0.4); box-shadow: 0 10px 30px rgba(255, 183, 3, 0.1); }
     .vgt-card-trap .vgt-circle { stroke: #ffb703; filter: drop-shadow(0 0 4px rgba(255,183,3,0.6)); }
 
-    /* Der Psychometrische Upsell-Köder */
     .vgt-card-upsell {
         background: repeating-linear-gradient(45deg, rgba(15,23,42,0.4), rgba(15,23,42,0.4) 10px, rgba(2,6,23,0.6) 10px, rgba(2,6,23,0.6) 20px);
         border: 1px dashed rgba(176, 38, 255, 0.4);
@@ -140,7 +126,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
         font-size: 18px;
     }
     
-    /* --- VGT THREAT STREAM STYLES --- */
     .vgt-stream-container {
         margin-top: 10px;
         background: rgba(13, 17, 30, 0.4);
@@ -164,7 +149,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
     .vgt-stream-msg { color: var(--vis-text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .vgt-badge-stream { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
     
-    /* Dynamische Kategorisierungs-Farben */
     .vgt-stream-type-aegis { color: #00e5ff; background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.2); }
     .vgt-stream-type-ban { color: #ff2a5f; background: rgba(255, 42, 95, 0.1); border: 1px solid rgba(255, 42, 95, 0.2); }
     .vgt-stream-type-trap { color: #ffb703; background: rgba(255, 183, 3, 0.1); border: 1px solid rgba(255, 183, 3, 0.2); }
@@ -177,7 +161,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
 
     <div class="vgt-radar-container">
         
-        <!-- 1. AEGIS WAF METRICS -->
         <div class="vgt-gauge-card vgt-card-aegis">
             <svg viewBox="0 0 36 36" class="vgt-circular-chart">
                 <path class="vgt-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -188,7 +171,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
             <div class="vgt-gauge-desc">Neutralisierte Payloads (SQLi, XSS, RCE) auf Stream-Ebene.</div>
         </div>
 
-        <!-- 2. CERBERUS BANS -->
         <div class="vgt-gauge-card vgt-card-cerberus">
             <svg viewBox="0 0 36 36" class="vgt-circular-chart">
                 <path class="vgt-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -199,7 +181,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
             <div class="vgt-gauge-desc">Permanente Perimeter-Sperren (Brute-Force & Attack Vectors).</div>
         </div>
 
-        <!-- 3. GHOST TRAP SNAPS -->
         <div class="vgt-gauge-card vgt-card-trap">
             <svg viewBox="0 0 36 36" class="vgt-circular-chart">
                 <path class="vgt-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -210,7 +191,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
             <div class="vgt-gauge-desc">Erfolgreiche Tarpit-Fallen gegen automatisierte Botnetze.</div>
         </div>
 
-        <!-- 4. PSYCHOMETRISCHER UPSELL (BLIND SPOT) -->
         <a href="https://visiongaiatechnology.de/visiongaiadefensehub/" target="_blank" style="text-decoration: none;">
             <div class="vgt-gauge-card vgt-card-upsell">
                 <span class="dashicons dashicons-lock vgt-upsell-lock"></span>
@@ -227,7 +207,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
 
     </div>
 
-    <!-- LIVE THREAT STREAM (NEU INJIZIERT) -->
     <h4 style="color: #fff; margin: 30px 0 15px 0; font-size: 14px; display: flex; align-items: center; gap: 8px;">
         <span class="dashicons dashicons-rss" style="color: var(--vis-text-muted);"></span> LIVE THREAT STREAM
     </h4>
@@ -240,7 +219,6 @@ $threat_stream = array_slice($threat_stream, 0, 6);
             </div>
         <?php else: ?>
             <?php foreach ($threat_stream as $event): 
-                // VGT KERNEL: Strikte Klassifizierung für visuelle Dominanz
                 $type_class = 'vgt-stream-type-aegis';
                 $type_label = 'AEGIS BLOCK';
                 
@@ -266,25 +244,19 @@ $threat_stream = array_slice($threat_stream, 0, 6);
 </div>
 
 <script>
-/**
- * VGT KINETIC DATA ANIMATOR
- * Feuert beim Laden des DOMs und animiert die Gauges via O(1) Interpolation.
- */
+
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 1. SVG Circle Draw Animation
     const circles = document.querySelectorAll('.vgt-circle');
     circles.forEach(circle => {
         const pct = circle.getAttribute('data-pct');
         if (pct) {
-            // Asymmetrischer Timeout für den High-Tech Effekt
             setTimeout(() => {
                 circle.style.strokeDasharray = `${pct}, 100`;
             }, 300 + Math.random() * 200);
         }
     });
 
-    // 2. Numeric Counter Animation (Kinetic Scroll)
     const texts = document.querySelectorAll('.vgt-percentage[data-count]');
     texts.forEach(text => {
         const target = parseInt(text.getAttribute('data-count'), 10);
@@ -297,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const counter = setInterval(() => {
             frame++;
-            // Ease-out mathematische Formel
             const progress = 1 - Math.pow(1 - frame / totalFrames, 3);
             const currentCount = Math.round(target * progress);
             
@@ -305,11 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (frame === totalFrames) {
                 clearInterval(counter);
-                text.textContent = target; // Fallback Genauigkeit
+                text.textContent = target; 
             }
         }, frameRate);
     });
 });
 </script>
 <?php
-// EOF
+
