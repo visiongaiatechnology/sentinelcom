@@ -2,14 +2,12 @@
 declare(strict_types=1);
 if (!defined('ABSPATH')) exit; 
 
-// REPORT LADEN
 $report = get_option('vis_scan_report', false);
 $has_report = !empty($report) && is_array($report);
 $status = $has_report ? $report['status'] : 'unknown';
 $changes = $has_report ? $report['changes'] : [];
 $last_scan = $has_report ? $report['timestamp'] : 'Nie';
 
-// COLORS
 $status_color = 'var(--vis-text-secondary)';
 $status_icon = 'dashicons-minus';
 
@@ -43,7 +41,6 @@ if ($status === 'clean') {
         </div>
         
         <div>
-            <!-- SCAN TRIGGER -->
             <button id="vis-btn-scan" class="vis-btn vis-btn-neon">
                 <span class="dashicons dashicons-search"></span> RUN DEEP SCAN
             </button>
@@ -63,7 +60,6 @@ if ($status === 'clean') {
             </p>
         </div>
     <?php else: ?>
-        <!-- WARNING STATE -->
         <div style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); padding:15px; border-radius:6px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; align-items:center; gap:10px; color:var(--vis-danger);">
                 <span class="dashicons dashicons-warning" style="font-size:20px;"></span>
@@ -86,10 +82,10 @@ if ($status === 'clean') {
             <tbody>
             <?php foreach($changes as $change): 
                 $type = $change['type'];
-                $badge_class = 'bg-red'; // Default
+                $badge_class = 'bg-red';
                 if ($type === 'NEW') $badge_class = 'bg-green';
-                if ($type === 'MODIFIED') $badge_class = 'bg-red'; // Modified ist kritischer
-                if ($type === 'DELETED') $badge_class = 'bg-red'; // Deleted könnte Malware-Cleanup sein oder Sabotage
+                if ($type === 'MODIFIED') $badge_class = 'bg-red';
+                if ($type === 'DELETED') $badge_class = 'bg-red'; 
                 ?>
                 <tr>
                     <td><span class="vis-badge <?php echo $badge_class; ?>"><?php echo $type; ?></span></td>
@@ -109,7 +105,6 @@ if ($status === 'clean') {
     <?php endif; ?>
 </div>
 
-<!-- Scan Progress Overlay (Hidden by Default) -->
 <div id="vis-scan-progress" style="display:none; margin-top:20px; background:var(--vis-bg-sidebar); padding:15px; border-radius:6px; border:1px solid var(--vis-border); text-align:center; color:var(--vis-accent);">
     <span class="dashicons dashicons-update spin"></span> <span id="vis-scan-status-text">INITIALIZING SCAN...</span>
 </div>
