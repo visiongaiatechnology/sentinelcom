@@ -71,7 +71,7 @@ class VIS_Ghost_Trap {
         if (defined('VIS_TRAP_ACTIVE') && VIS_TRAP_ACTIVE) {
             
             global $wpdb;
-            $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+            $ip = VIS_Network::resolve_true_ip();
             $vector = defined('VIS_TRAP_VECTOR') ? (string) VIS_TRAP_VECTOR : 'unknown_artifact';
             
             // 1. ATOMIC BAN PROTOCOL
