@@ -224,7 +224,7 @@ class VIS_Scanner_Engine {
         // Das verhindert Direct-Access-Leaks via Browser.
         $content = "<?php defined('ABSPATH') || exit; return " . var_export($data, true) . ";";
         
-        $temp_file = $this->manifest_file . '.tmp';
+        $temp_file = $this->manifest_file . '_tmp.php';
         
         if (file_put_contents($temp_file, $content, LOCK_EX) !== false) {
             rename($temp_file, $this->manifest_file);
