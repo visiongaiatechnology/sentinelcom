@@ -24,13 +24,27 @@ class VIS_Aegis {
     private array $whitelist_uas = [];
 
     private array $patterns = [
-        'rce'       => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
-        'lfi'       => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
-        'sqli'      => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
-        'xss'       => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
-        'gql_recon' => '/(?:__schema|__type)\s*(?:\{|\(|:)/i',
-        'ua'        => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i'
-    ];
+    // RCE: Blockiert kritische PHP-Funktionsaufrufe im Stream
+    'rce'        => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
+    
+    // LFI: Verhindert Directory Traversal und Zugriff auf Systemdateien
+    'lfi'        => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
+    
+    // SQLi: Erkennt Union-Selects, Error-based und Time-based Attacks
+    'sqli'       => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
+    
+    // XSS: Erkennt bösartige Scripts und Event-Handler
+    'xss'        => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
+    
+    // Malicious User Agents: Blockiert bekannte Scanner und Bots
+    'ua'         => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i',
+    
+    // Framework & Recon: Blockiert Laravel Ignition, Spring Boot, GraphQL Recon und WP-Core Hijacking
+    'framework'  => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
+    
+    // DB Direct: Verhindert den Versuch, das $wpdb Objekt oder rohe SQL-Queries zu injizieren
+    'db_direct'  => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
+];
 
     public function __construct(array $options) {
         $this->enabled = !empty($options['aegis_enabled']);
