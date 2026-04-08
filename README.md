@@ -13,6 +13,12 @@
 
 ---
 
+## ⚠️ DISCLAIMER: EXPERIMENTAL R&D PROJECT
+
+This project is a **Proof of Concept (PoC)** Wordpress Security Layer. It is **not** a Enterprise Plugin, and can be unsafe.
+
+**Do not use this in critical production environments.** For enterprise-grade kernel-level protection, we recommend established Solutions.
+
 ## 🔍 What is VGT Sentinel?
 
 VGT Sentinel Community Edition is a **modular, zero-dependency WordPress security framework** engineered to neutralize deterministic attack vectors without sacrificing performance.
