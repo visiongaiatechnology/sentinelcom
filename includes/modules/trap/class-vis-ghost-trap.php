@@ -84,7 +84,7 @@ class VIS_Ghost_Trap {
                     $ip, 
                     $reason, 
                     current_time('mysql'), 
-                    (string) ($_SERVER['REQUEST_URI'] ?? '/unknown')
+                    esc_url_raw( (string) ($_SERVER['REQUEST_URI'] ?? '/unknown') )
                 ));
             }
 
