@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) exit;
  * - Double-Decode Protection gegen WAF-Evasion.
  * - Strict Memory Management via expliziten Garbage Collection Triggers.
  * - VGT Zero-Trust Whitelist Protocol & Cerberus Handshake integriert.
+ * - [ NEU ]: Audit Paradigm Shift (Hard-Drop im Learning Mode, aber kein IP-Ban).
  */
 class VIS_Aegis {
 
@@ -24,26 +25,29 @@ class VIS_Aegis {
     private array $whitelist_uas = [];
 
     private array $patterns = [
-        // RCE: Erkennt kritische PHP-Funktionen, Shell-Backticks und Bash Hex-Strings ($'\x73...')
-        'rce'        => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\b\s*[\(\[])|`[^`]{1,255}`|\$\{[^\}]+\}|\\\\x[0-9a-fA-F]{2}/S',
+        // RCE: Erkennt kritische PHP-Funktionen, Shell-Backticks, Bash Hex-Strings, Call-User-Func, JNDI & Object Injection
+        'rce'        => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load)\b\s*[\(\[])|`[^`]{1,255}`|\$\{(?>jndi|env):[^\}]+\}|\\\\x[0-9a-fA-F]{2}|(?>O:\d+:"[^"]+":\d+:{)/S',
         
-        // LFI: Directory Traversal, Systemdateien und Wrapper-Missbrauch
-        'lfi'        => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts))|(?>c:\\\\windows)|(?>boot\.ini)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|%00/S',
+        // LFI: Directory Traversal, Systemdateien, Wrapper-Missbrauch und Nginx Logs
+        'lfi'        => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
         
-        // SQLi: Resilient gegen Punctuation Spaces, ODBC Escapes ({oj) und MySQL Tampers (/*!50000)
-        'sqli'       => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!\d+\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema|waitfor[\W_]+delay|(?>\b(?>benchmark|sleep|extractvalue|updatexml|hex|unhex|concat)\s*\()|(?>\s+(?>OR|AND)\s+[\d\'"`]+\s*(?>=|>|<|LIKE)\s*[\d\'"`]+)|(?>drop\s+(?>table|database))|(?>alter\s+table)|(?>\{oj\s+)/S',
+        // SQLi: Resilient gegen Punctuation Spaces, ODBC Escapes, MySQL Tampers und NoSQL Operatoren
+        'sqli'       => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema|waitfor[\W_]+delay|(?>\b(?>benchmark|sleep|extractvalue|updatexml|hex|unhex|concat)\s*\()|(?>\s+(?>OR|AND)\s+[\d\'"`]+\s*(?>=|>|<|LIKE)\s*[\d\'"`]+)|(?>drop\s+(?>table|database))|(?>alter\s+table)|(?>\{oj\s+)|(?>\$(?>where|ne|regex|gt|lt|exists|expr|nin)(?:"|\')?\s*:)/S',
         
-        // XSS: Erkennt DOM-Scripts, Event-Handler und Fullwidth-Unicode Evasion (％３Ｃ)
-        'xss'        => '/(?i)(?><script)|(?>\bjavascript:)|(?>on(?>load|error|click|mouseover|pointer)\s*=)|base64_decode|(?>\bvbscript:)|(?>data:text\/html)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc/S',
+        // XSS: Erkennt DOM-Scripts, Event-Handler, Angular Templates, Base64 URI und Unicode Evasion (％３Ｃ)
+        'xss'        => '/(?i)(?><script)|(?>\bjavascript:)|(?>on(?>load|error|click|mouseover|pointer)\s*=)|base64_decode|(?>\bvbscript:)|(?>data:text\/(?>html|xml))|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\$on\.constructor/S',
         
-        // Malicious User Agents: Blockiert Scanners, Bots und Exploitation Frameworks
-        'ua'         => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)\b/S',
+        // Malicious User Agents: Blockiert Scanners, Bots und Exploitation Frameworks (aggressiv)
+        'ua'         => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan|zgrab|projectdiscovery|nuclei)/S',
         
-        // Framework & Recon: Blockiert tiefe Reconnaissance und Core-Hijacking
-        'framework'  => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
+        // Framework & Recon: Blockiert tiefe Reconnaissance, Core-Hijacking und Sensible Dateien
+        'framework'  => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))|\.(?>env|git|svn)(?>\/|\b)/S',
         
         // DB Direct: Verhindert rohe Object-Injection in DB-Klassen
         'db_direct'  => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
+
+        // VGT Array Bypass: Blockiert PHP $_GET Injection wie ?cmd[]=system
+        'array_bypass'=> '/(?i)(?>\b[a-z0-9_]+(?:\[|%5B)[a-z0-9_\'"%]*?(?:\]|%5D)\s*=(?>\s|%20)*(?>system|exec|shell_exec|eval|assert|passthru|popen|proc_open|pcntl_exec|phpinfo))/S',
     ];
 
     public function __construct(array $options) {
@@ -146,8 +150,38 @@ class VIS_Aegis {
             $this->terminate("Ghost POST detected (No UA/Ref)", 'BLOCK', 'bot');
         }
 
-        if ($ua !== '' && preg_match($this->patterns['ua'], $ua)) {
-            $this->terminate('Malicious User-Agent signature detected', 'BLOCK', 'bot');
+        // [ VGT DIAMANT FIX ]: Scanne ALLE sicherheitskritischen HTTP-Header und Cookies
+        $headers_to_scan = [
+            $ua, 
+            $ref, 
+            (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''),
+            (string)($_SERVER['HTTP_X_REAL_IP'] ?? ''),
+            (string)($_SERVER['HTTP_ACCEPT'] ?? ''),
+            (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''),
+            (string)($_SERVER['HTTP_CACHE_CONTROL'] ?? ''),
+        ];
+        
+        // Füge Custom Header (z.B. X-VGT-Audit) zur Inspektion hinzu
+        foreach ($_SERVER as $key => $value) {
+            if (strpos($key, 'HTTP_X_') === 0 && is_string($value)) {
+                $headers_to_scan[] = $value;
+            }
+        }
+        
+        // Cookies auf Object Injections scannen
+        foreach ($_COOKIE as $val) {
+            if (is_string($val)) $headers_to_scan[] = $val;
+        }
+
+        foreach ($headers_to_scan as $header_val) {
+            if ($header_val === '') continue;
+            
+            $decoded = urldecode($header_val);
+            foreach ($this->patterns as $type => $regex) {
+                if (preg_match($regex, $decoded)) {
+                    $this->terminate("Threat Vector [$type] detected in Headers/Cookies.", 'BLOCK', $type);
+                }
+            }
         }
     }
 
@@ -166,6 +200,7 @@ class VIS_Aegis {
     }
 
     private function engage_ban_protocol(string $reason): void {
+        // [ VGT DIAMANT FIX ]: Ultimativer Netz-Sicherheitsschalter
         if ($this->mode === 'learning') return;
 
         // VGT KERNEL FIX: Direkter Handshake mit Cerberus, falls verfügbar!
@@ -189,6 +224,13 @@ class VIS_Aegis {
         global $wpdb;
         $table = $wpdb->prefix . (defined('VIS_TABLE_LOGS') ? VIS_TABLE_LOGS : 'vis_omega_logs');
         
+        // [ VGT DIAMANT FIX: AUDIT MODE PARADIGM SHIFT ]
+        // Im Learning-Mode zeichnen wir den Vorfall nur als BLOCK auf (kein Auto-BAN).
+        $will_ban = ($this->mode !== 'learning' && in_array($vector_type, ['sqli', 'rce', 'lfi', 'framework', 'ua']));
+        if ($will_ban) {
+            $action_type = 'BAN'; 
+        }
+        
         $wpdb->insert($table, [
             'module'   => 'AEGIS_PLATIN',
             'type'     => $action_type,
@@ -197,20 +239,37 @@ class VIS_Aegis {
             'severity' => (in_array($vector_type, ['sqli', 'rce', 'lfi']) || $action_type === 'BAN') ? 10 : 5
         ]);
 
-        if (in_array($vector_type, ['sqli', 'rce', 'lfi', 'gql_recon', 'ua'])) {
+        if ($will_ban) {
             $this->engage_ban_protocol("AEGIS: Critical Vector [$vector_type]");
-            $action_type = 'BAN'; 
         }
 
-        if ($this->mode === 'learning') return;
+        // VORHER: if ($this->mode === 'learning') return;
+        // JETZT: Wir löschen den Return. Die WAF zerschmettert den Payload IMMER, 
+        // damit Penetration-Tests (NEMESIS) valide 403-Antworten auslesen können!
 
-        // VGT Signature Move: TCP Socket Drop bevor irgendetwas gerendert wird
+        while (ob_get_level()) ob_end_clean();
+        
+        $safe_vector = preg_replace('/[^a-zA-Z0-9_]/', '', $vector_type); 
+
+        // VGT Signature Move: TCP Socket Drop bevor irgendetwas gerendert wird + Hard Protocol Override
         if (!headers_sent()) {
             http_response_code(403);
-            header('Connection: Close');
+            header('X-Aegis-Block: ' . strtoupper($safe_vector));
+            header('Content-Type: application/json; charset=utf-8'); 
+            header('Connection: close');
+            header('Cache-Control: no-store, max-age=0');
+        } else {
+            // [ VGT DIAMANT FIX: Hard Protocol Override ]
+            header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden', true, 403);
+            header('X-Aegis-Block: ' . strtoupper($safe_vector));
         }
         
-        die('<h1>403 Forbidden</h1><hr>VisionGaia Security Enforced.');
+        die(json_encode([
+            'status' => 'error',
+            'code' => 403,
+            'message' => 'VISIONGAIATECHNOLOGY AEGIS PROTOCOL: Access Denied',
+            'vector' => $vector_type
+        ]));
     }
 
     /**
