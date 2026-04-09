@@ -46,6 +46,9 @@ class VIS_Aegis {
         // DB Direct: Verhindert rohe Object-Injection in DB-Klassen
         'db_direct'  => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
 
+        // Anti-GQL
+        'gql_recon'     => '/(?i)(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
+
         // VGT Array Bypass: Blockiert PHP $_GET Injection wie ?cmd[]=system
         'array_bypass'=> '/(?i)(?>\b[a-z0-9_]+(?:\[|%5B)[a-z0-9_\'"%]*?(?:\]|%5D)\s*=(?>\s|%20)*(?>system|exec|shell_exec|eval|assert|passthru|popen|proc_open|pcntl_exec|phpinfo))/S',
     ];
