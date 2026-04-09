@@ -24,27 +24,27 @@ class VIS_Aegis {
     private array $whitelist_uas = [];
 
     private array $patterns = [
-    // RCE: Blockiert kritische PHP-Funktionsaufrufe im Stream
-    'rce'        => '/(?:system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\s*\(/i',
-    
-    // LFI: Verhindert Directory Traversal und Zugriff auf Systemdateien
-    'lfi'        => '/(?:\.\.[\/\\\\]|\/etc\/passwd|c:\\\\windows|boot\.ini)/i',
-    
-    // SQLi: Erkennt Union-Selects, Error-based und Time-based Attacks
-    'sqli'       => '/(?:union[\s\/\*]+select|information_schema|waitfor[\s\/\*]+delay|benchmark\s*\(|sleep\s*\(|hex\s*\(|unhex\s*\(|concat\s*\(|\s+(?:OR|AND)\s+\d+\s*=\s*\d+|drop\s+(?:table|database)|alter\s+table)/i',
-    
-    // XSS: Erkennt bösartige Scripts und Event-Handler
-    'xss'        => '/(?:<script|javascript:|on(?:load|error|click|mouseover)\s*=|base64_decode|vbscript:|data:text\/html)/i',
-    
-    // Malicious User Agents: Blockiert bekannte Scanner und Bots
-    'ua'         => '/(?:sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi:|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)/i',
-    
-    // Framework & Recon: Blockiert Laravel Ignition, Spring Boot, GraphQL Recon und WP-Core Hijacking
-    'framework'  => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
-    
-    // DB Direct: Verhindert den Versuch, das $wpdb Objekt oder rohe SQL-Queries zu injizieren
-    'db_direct'  => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
-];
+        // RCE: Erkennt kritische PHP-Funktionen, Shell-Backticks und Bash Hex-Strings ($'\x73...')
+        'rce'        => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo)\b\s*[\(\[])|`[^`]{1,255}`|\$\{[^\}]+\}|\\\\x[0-9a-fA-F]{2}/S',
+        
+        // LFI: Directory Traversal, Systemdateien und Wrapper-Missbrauch
+        'lfi'        => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts))|(?>c:\\\\windows)|(?>boot\.ini)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|%00/S',
+        
+        // SQLi: Resilient gegen Punctuation Spaces, ODBC Escapes ({oj) und MySQL Tampers (/*!50000)
+        'sqli'       => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!\d+\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema|waitfor[\W_]+delay|(?>\b(?>benchmark|sleep|extractvalue|updatexml|hex|unhex|concat)\s*\()|(?>\s+(?>OR|AND)\s+[\d\'"`]+\s*(?>=|>|<|LIKE)\s*[\d\'"`]+)|(?>drop\s+(?>table|database))|(?>alter\s+table)|(?>\{oj\s+)/S',
+        
+        // XSS: Erkennt DOM-Scripts, Event-Handler und Fullwidth-Unicode Evasion (％３Ｃ)
+        'xss'        => '/(?i)(?><script)|(?>\bjavascript:)|(?>on(?>load|error|click|mouseover|pointer)\s*=)|base64_decode|(?>\bvbscript:)|(?>data:text\/html)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc/S',
+        
+        // Malicious User Agents: Blockiert Scanners, Bots und Exploitation Frameworks
+        'ua'         => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan)\b/S',
+        
+        // Framework & Recon: Blockiert tiefe Reconnaissance und Core-Hijacking
+        'framework'  => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
+        
+        // DB Direct: Verhindert rohe Object-Injection in DB-Klassen
+        'db_direct'  => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
+    ];
 
     public function __construct(array $options) {
         $this->enabled = !empty($options['aegis_enabled']);
