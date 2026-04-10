@@ -6,15 +6,16 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * MODULE: AEGIS (The Shield) - VGT SUPREME PLATINUM REWRITE
- * STATUS: PLATIN STATUS
+ * MODULE: AEGIS (The Shield) - VGT SUPREME DIAMOND
+ * STATUS: DIAMANT STATUS (OPEN SOURCE HARDENED)
  * KOGNITIVE UPGRADES:
  * - [ FIXED ]: Zero-Trust Forward-Confirmed Reverse DNS (FCrDNS) implementiert. Blockiert PTR-Spoofing.
  * - [ FIXED ]: PCRE Fail-Closed Architecture. Ein Regex-Absturz führt zum sofortigen Block (ReDoS-Immunität).
  * - [ FIXED ]: Umfassende Header-Inspektion inklusive Authorization und Content-Type.
+ * - [ RED TEAM PATCHED ]: O(1) Signatur-Updates für Command Chaining, Subshells, ORDER BY und Trailing Comments.
+ * - [ NEW | JSON DPI ]: Deep Packet Inspection für application/json inkl. rekursiver Unicode-De-Obfuscation.
  * - O(1) Cloudflare CIDR Validation (via externem VIS_Network Kernel).
  * - Multi-Byte Boundary-Safe Stream Inspection mit optimierter I/O und Garbage Collection.
- * - Double-Decode Protection mit Fehler-Toleranz-Abfangung.
  */
 class VIS_Aegis {
 
@@ -26,12 +27,10 @@ class VIS_Aegis {
     private array $whitelist_ips = [];
     private array $whitelist_uas = [];
 
-    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen
+    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen + RED TEAM Patches
     private array $patterns = [
-        // RCE PATCHED: Subshells $(...), Pipelines |, und Verkettungen && hinzugefügt
         'rce'         => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load)\b\s*[\(\[])|`[^`]{1,255}`|\$\{(?>jndi|env):[^\}]+\}|\$\([^)]+\)|(?:;|\|\||\||&&)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir)|\\\\x[0-9a-fA-F]{2}|(?>O:\d+:"[^"]+":\d+:{)/S',
         'lfi'         => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
-        // SQLI PATCHED: Trailing Comments (-- , --+) und ORDER BY / GROUP BY Injections hinzugefügt
         'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema|waitfor[\W_]+delay|(?>\b(?>benchmark|sleep|extractvalue|updatexml|hex|unhex|concat)\s*\()|(?>\s+(?>OR|AND)\s+[\d\'"`]+\s*(?>=|>|<|LIKE)\s*[\d\'"`]+)|(?>drop\s+(?>table|database))|(?>alter\s+table)|(?>\{oj\s+)|(?>\$(?>where|ne|regex|gt|lt|exists|expr|nin)(?:"|\')?\s*:)|(?>\b(?>order|group)\s+by\b)|(?:--[ \+]*$)/S',
         'xss'         => '/(?i)(?><script)|(?>\bjavascript:)|(?>on(?>load|error|click|mouseover|pointer)\s*=)|base64_decode|(?>\bvbscript:)|(?>data:text\/(?>html|xml))|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\$on\.constructor/S',
         'ua'          => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan|zgrab|projectdiscovery|nuclei)/S',
@@ -64,7 +63,7 @@ class VIS_Aegis {
         $old_backtrack = ini_get('pcre.backtrack_limit');
         $old_recursion = ini_get('pcre.recursion_limit');
 
-        ini_set('pcre.backtrack_limit', '1000000'); // Standard PHP 8 Limit, reduziert ReDoS False-Positives
+        ini_set('pcre.backtrack_limit', '1000000');
         ini_set('pcre.recursion_limit', '1000000');
 
         $this->guard();
@@ -84,23 +83,76 @@ class VIS_Aegis {
 
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if ($method === 'POST' || $method === 'PUT' || $method === 'PATCH') {
-            $this->inspect_body_stream();
+            $content_type = strtolower($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '');
+            
+            // Deterministisches Branching basierend auf Content-Type (DPI)
+            if (strpos($content_type, 'application/json') !== false) {
+                $this->inspect_json_stream();
+            } else {
+                $this->inspect_body_stream();
+            }
         }
     }
 
-    /**
-     * Auswertung der regulären Ausdrücke unter Einsatz einer Fail-Closed-Policy.
-     * Ein Rückgabewert von `false` bei preg_match impliziert einen Limit-Exhaust (ReDoS-Attacke)
-     * und führt in VGT-Architektur zum direkten System-Block.
-     */
     private function match_pattern(string $regex, string $subject, string $type): void {
         $result = preg_match($regex, $subject);
         
         if ($result === 1) {
             $this->terminate("Threat Vector [$type] detected.", 'BLOCK', $type);
         } elseif ($result === false) {
-            // ReDoS-Protection: Wenn der Regex fehlschlägt, den Request abbrechen (Fail-Closed)
             $this->terminate("PCRE Engine Limit Exhaustion detected (Possible ReDoS) on Vector [$type].", 'BLOCK', 'pcre_evasion');
+        }
+    }
+
+    /**
+     * VGT DIAMOND UPGRADE: Deep Packet JSON Inspection
+     * Verhindert Bypasses durch \uXXXX Obfuscation in REST-APIs.
+     */
+    private function inspect_json_stream(): void {
+        $raw_body = file_get_contents('php://input', false, null, 0, $this->scan_limit);
+        if (empty($raw_body)) {
+            return;
+        }
+
+        try {
+            // Wir erzwingen eine Array-Struktur und werfen Exceptions bei Invalidität
+            $parsed_json = json_decode($raw_body, true, 512, JSON_THROW_ON_ERROR);
+            $this->recursive_array_scan($parsed_json);
+        } catch (JsonException $e) {
+            // Malformed JSON Obfuscation Abwehr: Brutale Normalisierung
+            // Angreifer senden absichtlich kaputtes JSON, das WP-Core evtl repariert.
+            // Wir wandeln \u003c in < um, auch im rohen String.
+            $normalized_raw = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
+                return mb_convert_encoding(pack('H*', $matches[1]), 'UTF-8', 'UCS-2BE');
+            }, $raw_body);
+
+            foreach ($this->patterns as $type => $regex) {
+                if ($type === 'ua') {
+                    continue;
+                }
+                $this->match_pattern($regex, (string)$normalized_raw, $type . '_json_raw_fallback');
+            }
+        }
+        
+        unset($raw_body);
+    }
+
+    /**
+     * Rekursiver Scanner für den extrahierten JSON-Tree.
+     */
+    private function recursive_array_scan(array $data): void {
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $this->recursive_array_scan($value);
+            } elseif (is_string($value)) {
+                $decoded = urldecode((string)$value);
+                foreach ($this->patterns as $type => $regex) {
+                    if ($type === 'ua') {
+                        continue;
+                    }
+                    $this->match_pattern($regex, $decoded, $type . '_json_tree');
+                }
+            }
         }
     }
 
@@ -139,7 +191,6 @@ class VIS_Aegis {
                 $this->match_pattern($regex, $decoded_payload, $type . '_body');
             }
 
-            // Letzte 256 Bytes überlappen, um gesplittete Payloads an der Chunk-Grenze zu catchen
             $overlap_buffer = substr($raw_payload, -256);
             
             unset($decoded_payload, $raw_payload, $chunk);
@@ -157,7 +208,6 @@ class VIS_Aegis {
             $this->terminate("Ghost POST detected (No UA/Ref)", 'BLOCK', 'bot');
         }
 
-        // Umfassende Header-Identifikation inklusive Authorization für JWT-Exploits
         $critical_headers = [
             'HTTP_USER_AGENT', 'HTTP_REFERER', 'HTTP_X_FORWARDED_FOR', 
             'HTTP_X_REAL_IP', 'HTTP_ACCEPT', 'HTTP_ACCEPT_LANGUAGE', 
@@ -236,7 +286,7 @@ class VIS_Aegis {
     private function terminate(string $reason, string $action_type, string $vector_type): void {
         global $wpdb;
 
-        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua'], true));
+        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua'], true));
         if ($will_ban) {
             $action_type = 'BAN'; 
         }
@@ -248,7 +298,7 @@ class VIS_Aegis {
                 'type'     => $action_type,
                 'message'  => $reason,
                 'ip'       => $this->validated_ip,
-                'severity' => (in_array(str_replace(['_body', '_header', '_uri'], '', $vector_type), ['sqli', 'rce', 'lfi'], true) || $action_type === 'BAN') ? 10 : 5
+                'severity' => (in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback'], '', $vector_type), ['sqli', 'rce', 'lfi'], true) || $action_type === 'BAN') ? 10 : 5
             ]);
         }
 
@@ -272,7 +322,6 @@ class VIS_Aegis {
             header('Cache-Control: no-store, max-age=0');
         }
         
-        // Strikte JSON Struktur für saubere API Integration
         die(json_encode([
             'status' => 'error',
             'code' => 403,
@@ -281,10 +330,6 @@ class VIS_Aegis {
         ], JSON_THROW_ON_ERROR));
     }
 
-    /**
-     * VGT ZERO-TRUST WHITELIST - PLATIN FIX
-     * Eliminiert IP Spoofing via Forward-Confirmed Reverse DNS (FCrDNS).
-     */
     private function is_whitelisted(): bool {
         if (defined('DOING_CRON') && DOING_CRON) {
             $server_ip = $_SERVER['SERVER_ADDR'] ?? null;
@@ -317,18 +362,11 @@ class VIS_Aegis {
             }
         }
 
-        // [ VGT PLATIN FIX ]: Bot-Verifikation via Forward-Confirmed reverse DNS (FCrDNS)
         if ($ua !== '' && preg_match('/(googlebot|bingbot|duckduckbot|yandexbot)/i', $ua)) {
             $hostname = gethostbyaddr($this->validated_ip);
-            
-            // Wenn der PTR Record existiert und nicht einfach nur die IP ist
             if ($hostname !== false && $hostname !== $this->validated_ip) {
-                // Forward DNS Lookup zur Validierung des Hostnames
                 $forward_ips = gethostbynamel($hostname);
-                
-                // Wenn die Ursprungs-IP in den aufgelösten IPs des Hostnames liegt -> FCrDNS verifiziert
                 if (is_array($forward_ips) && in_array($this->validated_ip, $forward_ips, true)) {
-                    // Verifikation gegen legitime Domains der Crawler
                     if (preg_match('/(?:googlebot\.com|search\.msn\.com|yandex\.com|yandex\.net|yandex\.ru|duckduckgo\.com)$/i', $hostname)) {
                         return true;
                     }
