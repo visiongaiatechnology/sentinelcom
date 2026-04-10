@@ -19,6 +19,11 @@ This project is a **Proof of Concept (PoC)** Wordpress Security Layer. It is **n
 
 **Do not use this in critical production environments.** For enterprise-grade kernel-level protection, we recommend established Solutions.
 
+## UPDATE 
+- New Regex Filters
+- Red team tests for internal use to evaluate Sentinel VGT Sentinel 
+We work every day to improve the Community Edition. 
+
 ## 🔍 What is VGT Sentinel?
 
 VGT Sentinel Community Edition is a **modular, zero-dependency WordPress security framework** engineered to neutralize deterministic attack vectors without sacrificing performance.
