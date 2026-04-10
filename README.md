@@ -22,7 +22,7 @@ This project is a **Proof of Concept (PoC)** Wordpress Security Layer. It is **n
 ## UPDATE 
 - New Regex Filters
 - Red team tests for internal use to evaluate Sentinel VGT Sentinel 
-We work every day to improve the Community Edition. 
+- We work every day to improve the Community Edition. 
 
 ## 🔍 What is VGT Sentinel?
 
