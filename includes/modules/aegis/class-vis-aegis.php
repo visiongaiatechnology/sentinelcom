@@ -13,8 +13,9 @@ if (!defined('ABSPATH')) {
  * - [ FIXED ]: PCRE Fail-Closed Architecture. Ein Regex-Absturz führt zum sofortigen Block (ReDoS-Immunität).
  * - [ FIXED ]: Umfassende Header-Inspektion inklusive Authorization und Content-Type.
  * - [ RED TEAM PATCHED ]: O(1) Signatur-Updates für Command Chaining, Subshells, ORDER BY und Trailing Comments.
+ * - [ RED TEAM PATCHED ]: Rekursives Payload-Decoding & OS-Level Comment Stripping (Double-Encoding Abwehr).
+ * - [ RED TEAM PATCHED ]: Baseline Polyglot Detection (Head-Scan für Multipart Uploads).
  * - [ NEW | JSON DPI ]: Deep Packet Inspection für application/json inkl. rekursiver Unicode-De-Obfuscation.
- * - O(1) Cloudflare CIDR Validation (via externem VIS_Network Kernel).
  * - Multi-Byte Boundary-Safe Stream Inspection mit optimierter I/O und Garbage Collection.
  */
 class VIS_Aegis {
@@ -29,7 +30,8 @@ class VIS_Aegis {
 
     // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen + RED TEAM Patches
     private array $patterns = [
-        'rce'         => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load)\b\s*[\(\[])|`[^`]{1,255}`|\$\{(?>jndi|env):[^\}]+\}|\$\([^)]+\)|(?:;|\|\||\||&&)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir)|\\\\x[0-9a-fA-F]{2}|(?>O:\d+:"[^"]+":\d+:{)/S',
+        // RCE Update: Shellshock () { :; }; hinzugefügt
+        'rce'         => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load)\b\s*[\(\[])|`[^`]{1,255}`|\$\{(?>jndi|env):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir)|\\\\x[0-9a-fA-F]{2}|(?>O:\d+:"[^"]+":\d+:{)/S',
         'lfi'         => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
         'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema|waitfor[\W_]+delay|(?>\b(?>benchmark|sleep|extractvalue|updatexml|hex|unhex|concat)\s*\()|(?>\s+(?>OR|AND)\s+[\d\'"`]+\s*(?>=|>|<|LIKE)\s*[\d\'"`]+)|(?>drop\s+(?>table|database))|(?>alter\s+table)|(?>\{oj\s+)|(?>\$(?>where|ne|regex|gt|lt|exists|expr|nin)(?:"|\')?\s*:)|(?>\b(?>order|group)\s+by\b)|(?:--[ \+]*$)/S',
         'xss'         => '/(?i)(?><script)|(?>\bjavascript:)|(?>on(?>load|error|click|mouseover|pointer)\s*=)|base64_decode|(?>\bvbscript:)|(?>data:text\/(?>html|xml))|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\$on\.constructor/S',
@@ -81,17 +83,46 @@ class VIS_Aegis {
         $this->inspect_headers();
         $this->inspect_uri();
 
+        // VGT Baseline: GET, POST und COOKIE Superglobals iterativ prüfen
+        if (!empty($_GET)) $this->recursive_array_scan($_GET, 'GET');
+        if (!empty($_POST)) $this->recursive_array_scan($_POST, 'POST');
+        if (!empty($_COOKIE)) $this->recursive_array_scan($_COOKIE, 'COOKIE');
+
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         if ($method === 'POST' || $method === 'PUT' || $method === 'PATCH') {
             $content_type = strtolower($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? '');
             
             // Deterministisches Branching basierend auf Content-Type (DPI)
-            if (strpos($content_type, 'application/json') !== false) {
+            if (strpos($content_type, 'multipart/form-data') !== false) {
+                if (!empty($_FILES)) {
+                    $this->inspect_files_baseline($_FILES);
+                }
+            } elseif (strpos($content_type, 'application/json') !== false) {
                 $this->inspect_json_stream();
             } else {
                 $this->inspect_body_stream();
             }
         }
+    }
+
+    /**
+     * VGT OPEN SOURCE: Recursive Baseline Normalization
+     * Zerstört Double-URL-Encoding & Basis-Kommentare.
+     */
+    private function normalize_payload(string $input): string {
+        $normalized = str_replace(["\0", "\r", "\n", "\t"], ' ', $input);
+        
+        $loops = 0;
+        do {
+            $old = $normalized;
+            $normalized = urldecode($normalized);
+            $loops++;
+        } while ($old !== $normalized && $loops < 3);
+
+        // Strippt SQL/HTML Kommentare (Abwehr von Tautologie-Obfuskation ' OR/**/1=1)
+        $normalized = preg_replace('/(?:\/\*.*?\*\/|<!\-\-.*?\-\->)/s', ' ', $normalized) ?? $normalized;
+
+        return $normalized;
     }
 
     private function match_pattern(string $regex, string $subject, string $type): void {
@@ -105,9 +136,57 @@ class VIS_Aegis {
     }
 
     /**
-     * VGT DIAMOND UPGRADE: Deep Packet JSON Inspection
-     * Verhindert Bypasses durch \uXXXX Obfuscation in REST-APIs.
+     * VGT BASELINE: Polyglot Upload Head-Scan
+     * Scannt nur die ersten 8KB der Datei. Ausreichend für Standard-Scripte.
+     * (Premium Version scannt unendlich Chunks für Padding-Attack Abwehr).
      */
+    private function inspect_files_baseline(array $files): void {
+        foreach ($files as $fileInfo) {
+            if (!is_array($fileInfo)) continue;
+
+            if (isset($fileInfo['tmp_name']) && is_string($fileInfo['tmp_name'])) {
+                $this->scan_file_head_only($fileInfo['tmp_name']);
+                
+                if (isset($fileInfo['name']) && is_string($fileInfo['name'])) {
+                    $norm_name = $this->normalize_payload($fileInfo['name']);
+                    foreach ($this->patterns as $type => $regex) {
+                        if ($type === 'ua') continue;
+                        $this->match_pattern($regex, $norm_name, $type . '_file_name');
+                    }
+                }
+            } elseif (isset($fileInfo['tmp_name']) && is_array($fileInfo['tmp_name'])) {
+                // Behandle multidimensionale Array-Struktur (bei multiple="multiple" Uploads)
+                foreach ($fileInfo['tmp_name'] as $idx => $tmp_path) {
+                    if (is_string($tmp_path)) {
+                        $this->scan_file_head_only($tmp_path);
+                        $name = $fileInfo['name'][$idx] ?? '';
+                        if (is_string($name)) {
+                            $norm_name = $this->normalize_payload($name);
+                            foreach ($this->patterns as $type => $regex) {
+                                if ($type === 'ua') continue;
+                                $this->match_pattern($regex, $norm_name, $type . '_file_name');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private function scan_file_head_only(string $tmp_path): void {
+        if (!is_readable($tmp_path)) return;
+        $handle = @fopen($tmp_path, 'rb');
+        if (!$handle) return;
+
+        // OS Limit: Lese nur den ersten Chunk (8KB). Ignoriert Deep-Padding Attacks.
+        $chunk = fread($handle, 8192); 
+        fclose($handle);
+
+        if ($chunk && preg_match('/<\?php|<\?=|#! \/bin\/|eval\s*\(/i', $chunk)) {
+            $this->terminate("Basic Polyglot Code Injection in Upload", 'BLOCK', 'rce_upload_basic');
+        }
+    }
+
     private function inspect_json_stream(): void {
         $raw_body = file_get_contents('php://input', false, null, 0, $this->scan_limit);
         if (empty($raw_body)) {
@@ -115,13 +194,9 @@ class VIS_Aegis {
         }
 
         try {
-            // Wir erzwingen eine Array-Struktur und werfen Exceptions bei Invalidität
             $parsed_json = json_decode($raw_body, true, 512, JSON_THROW_ON_ERROR);
-            $this->recursive_array_scan($parsed_json);
+            $this->recursive_array_scan($parsed_json, 'JSON');
         } catch (JsonException $e) {
-            // Malformed JSON Obfuscation Abwehr: Brutale Normalisierung
-            // Angreifer senden absichtlich kaputtes JSON, das WP-Core evtl repariert.
-            // Wir wandeln \u003c in < um, auch im rohen String.
             $normalized_raw = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
                 return mb_convert_encoding(pack('H*', $matches[1]), 'UTF-8', 'UCS-2BE');
             }, $raw_body);
@@ -137,20 +212,17 @@ class VIS_Aegis {
         unset($raw_body);
     }
 
-    /**
-     * Rekursiver Scanner für den extrahierten JSON-Tree.
-     */
-    private function recursive_array_scan(array $data): void {
+    private function recursive_array_scan(array $data, string $context = 'DATA'): void {
         foreach ($data as $key => $value) {
             if (is_array($value)) {
-                $this->recursive_array_scan($value);
+                $this->recursive_array_scan($value, $context);
             } elseif (is_string($value)) {
-                $decoded = urldecode((string)$value);
+                $normalized = $this->normalize_payload($value);
                 foreach ($this->patterns as $type => $regex) {
                     if ($type === 'ua') {
                         continue;
                     }
-                    $this->match_pattern($regex, $decoded, $type . '_json_tree');
+                    $this->match_pattern($regex, $normalized, $type . '_' . strtolower($context));
                 }
             }
         }
@@ -181,8 +253,8 @@ class VIS_Aegis {
             $scanned_bytes += strlen($chunk);
             $raw_payload = $overlap_buffer . $chunk;
             
-            // Boundary-Safe Decoding
-            $decoded_payload = urldecode(urldecode($raw_payload));
+            // Baseline Decoding Integration
+            $decoded_payload = $this->normalize_payload($raw_payload);
 
             foreach ($this->patterns as $type => $regex) {
                 if ($type === 'ua') {
@@ -239,7 +311,8 @@ class VIS_Aegis {
                 continue;
             }
             
-            $decoded = urldecode($header_val);
+            // Baseline Decoding für Headers
+            $decoded = $this->normalize_payload($header_val);
             foreach ($this->patterns as $type => $regex) {
                 $this->match_pattern($regex, $decoded, $type . '_header');
             }
@@ -248,14 +321,13 @@ class VIS_Aegis {
 
     private function inspect_uri(): void {
         $raw_uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
-        $decoded = urldecode($raw_uri);
-        $double_decoded = urldecode($decoded);
+        $normalized_uri = $this->normalize_payload($raw_uri);
 
         foreach ($this->patterns as $type => $regex) {
             if ($type === 'ua') {
                 continue;
             }
-            $this->match_pattern($regex, $double_decoded, $type . '_uri');
+            $this->match_pattern($regex, $normalized_uri, $type . '_uri');
         }
     }
 
@@ -286,7 +358,7 @@ class VIS_Aegis {
     private function terminate(string $reason, string $action_type, string $vector_type): void {
         global $wpdb;
 
-        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua'], true));
+        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua'], true));
         if ($will_ban) {
             $action_type = 'BAN'; 
         }
@@ -294,11 +366,11 @@ class VIS_Aegis {
         if (isset($wpdb)) {
             $table = $wpdb->prefix . (defined('VIS_TABLE_LOGS') ? VIS_TABLE_LOGS : 'vis_omega_logs');
             $wpdb->insert($table, [
-                'module'   => 'AEGIS_PLATIN',
+                'module'   => 'AEGIS_OS_HARDENED',
                 'type'     => $action_type,
                 'message'  => $reason,
                 'ip'       => $this->validated_ip,
-                'severity' => (in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback'], '', $vector_type), ['sqli', 'rce', 'lfi'], true) || $action_type === 'BAN') ? 10 : 5
+                'severity' => (in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name'], '', $vector_type), ['sqli', 'rce', 'lfi'], true) || $action_type === 'BAN') ? 10 : 5
             ]);
         }
 
