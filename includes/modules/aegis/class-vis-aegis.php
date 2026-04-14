@@ -242,8 +242,8 @@ class VIS_Aegis {
 
         while (!feof($handle)) {
             if ($scanned_bytes >= $this->scan_limit) {
-                break;
-            }
+                this->terminate("Payload Size Exhaustion (Padding Attack Abwehr)", 'BLOCK', 'limit_exhaustion');
+    }
 
             $chunk = fread($handle, $chunk_size);
             if ($chunk === false || $chunk === '') {
