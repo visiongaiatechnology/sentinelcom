@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) exit;
  * Status: ACTIVE / PLATINUM HARDENED
  * Logic: Kombiniert Asset-Maskierung (Ghost Protocol) mit Routing-Maskierung (Login/Admin).
  * Fix: Type-Guard in URL-Filtern zur Prävention von PHP 8+ TypeError Fatalities.
+ * VGT DIAMANT FIX: PCRE Fail-Safe Mechanismus verhindert .htaccess Wipeouts bei Limit Exhaustion.
  */
 class VIS_Hades {
 
@@ -119,6 +120,14 @@ class VIS_Hades {
         
         $pattern = "/".preg_quote($start, '/').".*?".preg_quote($end, '/')."/s";
         $clean_content = preg_replace($pattern, '', $content);
+        
+        // VGT SUPREME FIX: PCRE Fail-Safe
+        // Wenn preg_replace aufgrund von PCRE-Limits (Backtracking) fehlschlägt,
+        // gibt es null zurück. Wir fallen auf den originalen Content zurück, 
+        // um einen Wipeout der Datei zu verhindern.
+        if ($clean_content === null) {
+            $clean_content = $content;
+        }
         
         if ($this->enabled) {
             $new_content = $start . "\n" . $rules . "\n" . $end . "\n" . trim((string)$clean_content);
