@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) exit;
  * - Filesystem State Tracking: Null DB-Hits während einer Brute-Force Welle.
  * - Anti-Timing Attack Sleep Delays bei positiven Ban-Hits.
  * - VGT FIX: Global Perimeter Lockdown (Blockiert die gesamte Website, nicht nur Login).
+ * - VGT DIAMANT FIX: Atomare Dateioperationen (flock) gegen Concurrency/Race-Condition Bypasses.
  */
 class VIS_Cerberus {
 
@@ -83,6 +84,7 @@ class VIS_Cerberus {
     /**
      * FILESYSTEM-BASED STATE TRACKING
      * Vermeidet den MySQL Max-Connection Tod auf Shared Hostings.
+     * VGT DIAMANT FIX: Vollständig atomare Operationen zur Abwehr von Race Conditions.
      */
     public function register_auth_failure(string $username): void {
         $ip = class_exists('VIS_Network') ? VIS_Network::resolve_true_ip() : $_SERVER['REMOTE_ADDR'];
@@ -94,33 +96,36 @@ class VIS_Cerberus {
 
         $state_file = $this->vault_dir . '/cerb_' . md5($ip) . '.dat';
         $current_time = time();
-        $retries = 0;
-        $last_attempt = 0;
-
-        // Atomic Read
-        if (file_exists($state_file)) {
-            $data = explode(':', (string) @file_get_contents($state_file));
-            if (count($data) === 2) {
-                $last_attempt = (int) $data[0];
-                $retries = (int) $data[1];
+        
+        // VGT SUPREME FIX: Echte Atomare Operation mit flock
+        $fp = @fopen($state_file, 'c+');
+        if ($fp && @flock($fp, LOCK_EX)) { // Exklusiver Lock VOR dem Lesen
+            $content = stream_get_contents($fp);
+            $data = explode(':', $content);
+            
+            $last_attempt = (int)($data[0] ?? 0);
+            $retries = (int)($data[1] ?? 0);
+            
+            // Lockout Zeit-Fenster evaluieren
+            if (($current_time - $last_attempt) > $this->lockout_time) {
+                $retries = 0;
             }
-        }
-
-        // Lockout Zeit-Fenster evaluieren
-        if (($current_time - $last_attempt) > $this->lockout_time) {
-            $retries = 0; // Reset
-        }
-
-        $retries++;
-
-        if ($retries >= $this->max_retries) {
-            // Ausführung des Hard-Bans (Die einzige DB-Interaktion)
-            $this->execute_hard_ban($ip, "CERBERUS: Authentication threshold exceeded (Target: {$username})");
-            @unlink($state_file); // Cleanup State
-        } else {
-            // Atomic Write mit LOCK_EX um Concurrency-Corruption zu verhindern
-            $payload = $current_time . ':' . $retries;
-            @file_put_contents($state_file, $payload, LOCK_EX);
+            
+            $retries++;
+            
+            if ($retries >= $this->max_retries) {
+                // Ausführung des Hard-Bans (Die einzige DB-Interaktion)
+                $this->execute_hard_ban($ip, "CERBERUS: Authentication threshold exceeded (Target: {$username})");
+                ftruncate($fp, 0);
+                @unlink($state_file); // Cleanup State
+            } else {
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, $current_time . ':' . $retries);
+            }
+            
+            @flock($fp, LOCK_UN);
+            fclose($fp);
         }
     }
 
