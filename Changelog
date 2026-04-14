@@ -1,0 +1,27 @@
+🛠 VGT SENTINEL CE: CHANGELOG – SECURITY PATCH 2026.04.14
+1. CERBERUS: ATOMIC LOCKING ENGINE (RACE CONDITION FIX)
+Vektor: Time-of-Check to Time-of-Use (TOCTOU) Umgehung.
+
+Problem: Bei synchronen Brute-Force-Wellen konnten mehrere PHP-Worker gleichzeitig den Status 0 Fehlversuche lesen und zeitgleich 1 Fehlversuch schreiben. Die 3-Strike-Regel wurde so mathematisch ausgehebelt.
+
+Lösung: Implementierung eines exklusiven Dateisystem-Locks (flock). Der Lese- und Schreibzyklus ist jetzt atomar. Ein Thread blockiert den Zugriff für andere, bis die Zählung und der potenzielle Bann finalisiert sind.
+
+Status: Fixed
+
+2. HADES: PCRE FAIL-SAFE GUARD (.HTACCESS INTEGRITY)
+Vektor: Dateisystem-Korruption durch Ressourcen-Erschöpfung.
+
+Problem: Bei extrem großen .htaccess Dateien konnte die Regex-Engine (preg_replace) das Backtrack-Limit überschreiten und NULL zurückgeben. Dies führte zur Löschung der kompletten Datei beim Speichervorgang.
+
+Lösung: Ein Strict-Null-Check validiert nun das Ergebnis der Transformation. Schlägt die Engine fehl, wird der Original-Inhalt beibehalten (Fail-Closed-Integrität).
+
+Status: Fixed
+
+3. AEGIS: PAYLOAD EXHAUSTION TERMINATION (PADDING PROTECTION)
+Vektor: WAF Bypass via Stream Padding.
+
+Problem: Der Scan-Prozess brach beim Erreichen des Limits (512KB) einfach ab (break), während die Applikation dahinter den (potenziell schädlichen) Rest des 1MB+ Payloads weiterverarbeitete.
+
+Lösung: Der Scan-Abbruch wurde durch eine Immediate Termination ersetzt. Erreicht ein Request das Scan-Limit, wird er als Anomalie gewertet und sofort verworfen.
+
+Status: Fixed
