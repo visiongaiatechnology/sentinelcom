@@ -7,14 +7,16 @@ if (!defined('ABSPATH')) {
 
 /**
  * VIEW: SYSTEM INTEGRITY MONITOR
- * STATUS: PLATIN STATUS (MODULAR ASSET ARCHITECTURE)
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: FILE SYSTEM HASHING & BASELINE AUDIT
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
 $report     = get_option('vgts_scan_report', []);
 $has_report = !empty($report) && is_array($report);
-$status     = $has_report ? $report['status'] : 'unknown';
+$status     = $has_report ? (string)$report['status'] : 'unknown';
 $changes    = $has_report ? (array)$report['changes'] : [];
-$last_scan  = $has_report ? esc_html($report['timestamp']) : esc_html__('Never', 'vgt-sentinel-ce');
+$last_scan  = $has_report ? esc_html((string)$report['timestamp']) : esc_html__('Never', 'vgt-sentinel-ce');
 
 $status_color = 'var(--vgts-text-secondary)';
 $status_icon  = 'dashicons-minus';
@@ -71,10 +73,13 @@ if ($status === 'clean') {
                 <span class="dashicons dashicons-warning" style="font-size:20px;"></span>
                 <strong style="font-size:14px;">
                     <?php 
+                    $change_count = count($changes);
                     printf(
-                        /* translators: %d: count of changed files */
-                        esc_html__('ANOMALIES DETECTED: %d FILES MODIFIED', 'vgt-sentinel-ce'), 
-                        count($changes)
+                        esc_html(
+                            /* translators: %d: count of changed files */
+                            _n('ANOMALY DETECTED: %d FILE MODIFIED', 'ANOMALIES DETECTED: %d FILES MODIFIED', $change_count, 'vgt-sentinel-ce')
+                        ),
+                        (int)$change_count
                     ); 
                     ?>
                 </strong>
@@ -95,17 +100,17 @@ if ($status === 'clean') {
             </thead>
             <tbody>
             <?php foreach($changes as $change): 
-                $type = $change['type'] ?? 'MODIFIED';
+                $type = isset($change['type']) ? (string)$change['type'] : 'MODIFIED';
                 $badge_class = 'bg-red';
                 if ($type === 'NEW') { $badge_class = 'bg-green'; }
                 ?>
                 <tr>
                     <td><span class="vgts-badge-integrity <?php echo esc_attr($badge_class); ?>"><?php echo esc_html($type); ?></span></td>
                     <td class="text-mono" style="color:#fff; font-size:12px; word-break:break-all;">
-                        <?php echo esc_html($change['file']); ?>
+                        <?php echo esc_html((string)$change['file']); ?>
                     </td>
                     <td style="color:var(--vgts-text-secondary); font-size:11px;">
-                        <?php echo esc_html($change['desc']); ?>
+                        <?php echo esc_html((string)$change['desc']); ?>
                     </td>
                     <td>
                         <button type="button" class="vgts-btn-link" style="color:var(--vgts-accent); font-size:11px; background:none; border:none; cursor:pointer;">
