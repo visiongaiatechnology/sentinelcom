@@ -7,8 +7,9 @@ if (!defined('ABSPATH')) {
 
 /**
  * VIEW: AIRLOCK GUARD SETTINGS
- * STATUS: DIAMANT VGT SUPREME
- * FIX: UI Sync & Namespace Alignment (VGTS_ Standard)
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: SECURE UPLINK INGRESS (Community Edition)
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
 if (!isset($opt)) {
@@ -18,6 +19,7 @@ if (!isset($opt)) {
 
 <div id="vgts-airlock-container" class="vgts-view-animate">
     
+    <!-- MAIN SHIELD CARD -->
     <div class="vgts-card vgts-card-airlock" style="border-left: 4px solid var(--vgts-accent); background: linear-gradient(90deg, rgba(6, 182, 212, 0.05) 0%, var(--vgts-bg-card) 100%);">
         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid var(--vgts-border); padding-bottom: 20px;">
             <span class="dashicons dashicons-upload" style="font-size: 40px; width: 40px; height: 40px; color: var(--vgts-accent); filter: drop-shadow(0 0 10px var(--vgts-accent-glow));"></span>
@@ -37,6 +39,7 @@ if (!isset($opt)) {
             </p>
         </div>
 
+        <!-- ENGINE TOGGLE -->
         <div class="vgts-switch-row" style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; border: 1px solid var(--vgts-border);">
             <div class="vgts-label-group">
                 <strong style="color: var(--vgts-accent); font-size: 15px;"><?php esc_html_e('Enable Airlock Protection', 'vgt-sentinel-ce'); ?></strong>
@@ -49,6 +52,7 @@ if (!isset($opt)) {
         </div>
     </div>
 
+    <!-- PRO-TIP / INFORMATION BOX -->
     <div class="vgts-card" style="border: 1px dashed var(--vgts-accent); background: rgba(6, 182, 212, 0.02);">
         <h5 style="margin: 0 0 10px 0; color: var(--vgts-accent); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
             <span class="dashicons dashicons-lightbulb" style="font-size: 16px; width: 16px; height: 16px;"></span> 
@@ -59,7 +63,7 @@ if (!isset($opt)) {
             echo wp_kses_post(
                 sprintf(
                     /* translators: %s: Strong tag for Oracle AI */
-                    __('In the Platinum version of Sentinel, Airlock additionally leverages the %s to heuristically detect even the most complex steganography attacks hidden within image files.', 'vgt-sentinel-ce'),
+                    esc_html__('In the Platinum version of Sentinel, Airlock additionally leverages the %s to heuristically detect even the most complex steganography attacks hidden within image files.', 'vgt-sentinel-ce'),
                     '<strong style="color:#fff;">' . esc_html__('ORACLE AI', 'vgt-sentinel-ce') . '</strong>'
                 )
             );
