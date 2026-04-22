@@ -7,20 +7,25 @@ if (!defined('ABSPATH')) {
 
 /**
  * VIEW: ORACLE SYSTEM AUDIT REPORT
- * STATUS: PLATIN STATUS (WP.ORG COMPLIANT)
- * KOGNITIVE UPGRADES:
- * - [WP.ORG FIXED]: Full localization (i18n).
- * - [WP.ORG FIXED]: Strict output escaping (esc_html).
- * - [WP.ORG FIXED]: Correct kernel class reference (VGTS_Oracle).
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: REAL-TIME ENVIRONMENT DIAGNOSTICS (Community Edition)
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
-// Initialisiere die Oracle Engine
+// Initialisiere die Oracle Engine (Community Edition Namespace)
 if (!class_exists('VGTS_Oracle')) {
-    require_once VGTS_PATH . 'includes/modules/oracle/class-vis-oracle.php';
+    $oracle_path = VGTS_PATH . 'includes/modules/oracle/class-vis-oracle.php';
+    if (is_readable($oracle_path)) {
+        require_once $oracle_path;
+    }
 }
 
-$oracle = new VGTS_Oracle();
-$results = $oracle->run_prophecy();
+if (class_exists('VGTS_Oracle')) {
+    $oracle = new VGTS_Oracle();
+    $results = $oracle->run_prophecy();
+} else {
+    $results = [];
+}
 ?>
 
 <div class="vgts-card">
@@ -39,25 +44,36 @@ $results = $oracle->run_prophecy();
                 </tr>
             </thead>
             <tbody>
-            <?php foreach ($results as $item) : 
-                // Bestimme die Badge-Farbe basierend auf dem Status
-                $is_pass = ($item['status'] === 'PASS');
-                $badge_class = $is_pass ? 'bg-green' : 'bg-red';
-                ?>
+            <?php if (empty($results)) : ?>
                 <tr>
-                    <td style="font-weight: 600; color: #fff;">
-                        <?php echo esc_html($item['check']); ?>
-                    </td>
-                    <td>
-                        <span class="vgts-badge-status <?php echo esc_attr($badge_class); ?>">
-                            <?php echo esc_html($item['status']); ?>
-                        </span>
-                    </td>
-                    <td style="color: var(--vgts-text-secondary); line-height: 1.4;">
-                        <?php echo esc_html($item['msg']); ?>
+                    <td colspan="3" style="text-align:center; padding:40px; color:var(--vgts-text-secondary);">
+                        <?php esc_html_e('Diagnostic engine offline or no data returned.', 'vgt-sentinel-ce'); ?>
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php else : ?>
+                <?php foreach ($results as $item) : 
+                    // Bestimme die Badge-Farbe basierend auf dem Status-String
+                    $is_pass = (isset($item['status']) && $item['status'] === 'PASS');
+                    $badge_class = $is_pass ? 'bg-green' : 'bg-red';
+                ?>
+                    <tr>
+                        <td style="font-weight: 600; color: #fff;">
+                            <?php echo esc_html((string)$item['check']); ?>
+                        </td>
+                        <td>
+                            <span class="vgts-badge-status <?php echo esc_attr($badge_class); ?>">
+                                <?php echo esc_html((string)$item['status']); ?>
+                            </span>
+                        </td>
+                        <td style="color: var(--vgts-text-secondary); line-height: 1.4;">
+                            <?php 
+                            // Strikte Neutralisierung potenzieller System-Anomalien im Berichtstext
+                            echo esc_html((string)$item['msg']); 
+                            ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
             </tbody>
         </table>
     </div>
