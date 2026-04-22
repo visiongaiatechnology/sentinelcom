@@ -7,21 +7,23 @@ if (!defined('ABSPATH')) {
 
 /**
  * VIEW: TITAN HARDENING & .HTACCESS
- * STATUS: PLATIN STATUS (MODULAR ASSET ARCHITECTURE)
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: KERNEL HARDENING & SERVER-LEVEL PROTECTION (CE)
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
 $opt = (array) get_option('vgts_config', []);
 ?>
 
-<div id="vgts-titan-container">
+<div id="vgts-titan-container" class="vgts-view-animate">
     <!-- UI LANGUAGE TOGGLE -->
     <div class="vgts-toggle-wrapper">
         <label class="vgts-toggle-label">
-            <span class="vgts-toggle-text vgts-text-de">DE</span>
+            <span class="vgts-toggle-text vgts-text-de"><?php esc_html_e('DE', 'vgt-sentinel-ce'); ?></span>
             <div class="vgts-switch-track">
                 <div class="vgts-switch-thumb"></div>
             </div>
-            <span class="vgts-toggle-text vgts-text-en">EN</span>
+            <span class="vgts-toggle-text vgts-text-en"><?php esc_html_e('EN', 'vgt-sentinel-ce'); ?></span>
             <input type="checkbox" id="vgts-titan-lang-toggle" style="display: none;">
         </label>
     </div>
@@ -33,10 +35,10 @@ $opt = (array) get_option('vgts_config', []);
             <span class="vgts-lang-en" style="display:inline;"><?php esc_html_e('KERNEL HARDENING & .HTACCESS', 'vgt-sentinel-ce'); ?></span>
         </h3>
         <p class="vgts-lang-de" style="color:var(--vgts-text-secondary); margin-bottom:20px; font-size:13px;">
-            Alle Aktivierungen in diesem Modul werden automatisch in die <code>.htaccess</code> geschrieben (sofern Apache), um maximalen Schutz auf Server-Ebene zu gewährleisten.
+            <?php echo wp_kses_post(__('Alle Aktivierungen in diesem Modul werden automatisch in die <code>.htaccess</code> geschrieben (sofern Apache), um maximalen Schutz auf Server-Ebene zu gewährleisten.', 'vgt-sentinel-ce')); ?>
         </p>
         <p class="vgts-lang-en" style="color:var(--vgts-text-secondary); margin-bottom:20px; font-size:13px;">
-            All activations within this module are dynamically injected into the <code>.htaccess</code> file (if on Apache) to establish maximum server-level protection.
+            <?php echo wp_kses_post(__('All activations within this module are dynamically injected into the <code>.htaccess</code> file (if on Apache) to establish maximum server-level protection.', 'vgt-sentinel-ce')); ?>
         </p>
 
         <!-- SECTION 1: CAMOUFLAGE -->
@@ -102,7 +104,7 @@ $opt = (array) get_option('vgts_config', []);
             </label>
         </div>
 
-        <!-- NEW: GUIDELINE 10 OPT-IN (FILE EDITOR) -->
+        <!-- GUIDELINE 10 OPT-IN (FILE EDITOR) -->
         <div class="vgts-switch-row">
             <div class="vgts-label-group">
                 <strong class="vgts-lang-de"><?php esc_html_e('DATEI-EDITOR DEAKTIVIEREN', 'vgt-sentinel-ce'); ?></strong>
