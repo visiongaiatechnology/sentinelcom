@@ -1,63 +1,117 @@
 <?php
 declare(strict_types=1);
-if (!defined('ABSPATH')) exit;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * MODULE: ORACLE (The Sight)
+ * STATUS: PLATIN STATUS (WP.ORG COMPLIANT)
  * Führt On-Demand System-Audits durch.
  * Optimiert auf maximale Informationsdichte und Erweiterbarkeit.
  */
-class VIS_Oracle {
+class VGTS_Oracle {
 
-    public function run_prophecy() {
-        $r = [];
+    /**
+     * Startet den System-Audit-Prozess.
+     * * @return array[] Liste der Audit-Ergebnisse
+     */
+    public function run_prophecy(): array {
+        $results = [];
 
         // 1. CONFIGURATION & FILESYSTEM
-        $r[] = $this->check(is_writable(ABSPATH . 'wp-config.php'), 'Config Writeable', 'Critical: wp-config.php ist beschreibbar!', 'Secured (Read-Only).');
-        $r[] = $this->check(file_exists(WP_CONTENT_DIR . '/debug.log'), 'Debug Log Exposure', 'debug.log ist öffentlich zugänglich.', 'Kein Log gefunden.');
-        $r[] = $this->check(defined('DISALLOW_FILE_EDIT') && DISALLOW_FILE_EDIT, 'File Editor Status', 'Editor deaktiviert (Sicher).', 'Editor aktiv (RCE Risiko).', true);
+        $config_path = ABSPATH . 'wp-config.php';
+        $results[] = $this->check(
+            is_writable($config_path),
+            __('Config Writable', 'vgt-sentinel-ce'),
+            __('Critical: wp-config.php is writable!', 'vgt-sentinel-ce'),
+            __('Secured (Read-Only).', 'vgt-sentinel-ce')
+        );
+
+        $results[] = $this->check(
+            file_exists(WP_CONTENT_DIR . '/debug.log'),
+            __('Debug Log Exposure', 'vgt-sentinel-ce'),
+            __('debug.log is publicly accessible.', 'vgt-sentinel-ce'),
+            __('No log file found.', 'vgt-sentinel-ce')
+        );
+
+        $results[] = $this->check(
+            defined('DISALLOW_FILE_EDIT') && DISALLOW_FILE_EDIT,
+            __('File Editor Status', 'vgt-sentinel-ce'),
+            __('Editor deactivated (Secure).', 'vgt-sentinel-ce'),
+            __('Editor active (RCE Risk).', 'vgt-sentinel-ce'),
+            true
+        );
 
         // 2. DATABASE & USERS
         global $wpdb;
-        $r[] = $this->check($wpdb->prefix === 'wp_', 'DB Prefix Hardening', 'Custom Prefix aktiv.', 'Standard "wp_" Prefix gefunden (Risk).', true);
+        $results[] = $this->check(
+            $wpdb->prefix === 'wp_',
+            __('DB Prefix Hardening', 'vgt-sentinel-ce'),
+            __('Custom Prefix active.', 'vgt-sentinel-ce'),
+            __('Standard "wp_" prefix found (Risk).', 'vgt-sentinel-ce'),
+            true
+        );
         
         $admin_exists = get_user_by('login', 'admin');
-        $r[] = $this->check($admin_exists, 'Default Admin User', 'User "admin" existiert (Brute-Force Ziel).', 'Kein Standard-Admin gefunden.');
+        $results[] = $this->check(
+            (bool) $admin_exists,
+            __('Default Admin User', 'vgt-sentinel-ce'),
+            __('User "admin" exists (Brute-Force Target).', 'vgt-sentinel-ce'),
+            __('No standard admin user found.', 'vgt-sentinel-ce')
+        );
 
         // 3. NETWORK & ENVIRONMENT
-        $is_https = is_ssl();
-        $r[] = $this->check($is_https, 'SSL/TLS Encryption', 'Verbindung verschlüsselt.', 'Unverschlüsselt (HTTP).', true);
+        $results[] = $this->check(
+            is_ssl(),
+            __('SSL/TLS Encryption', 'vgt-sentinel-ce'),
+            __('Connection encrypted.', 'vgt-sentinel-ce'),
+            __('Unencrypted (HTTP).', 'vgt-sentinel-ce'),
+            true
+        );
 
         // 4. DIRECTORY LISTING CHECK
-        $r[] = $this->check_directory_listing();
+        $results[] = $this->check_directory_listing();
 
         // 5. REST API EXPOSURE
-        $r[] = $this->check(isset($_SERVER['HTTP_AUTHORIZATION']), 'Auth Header Protection', 'Authorization Headers erkannt.', 'Headers fehlen (Mögliche API-Einschränkung).', true);
+        $auth_header = isset($_SERVER['HTTP_AUTHORIZATION']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_AUTHORIZATION'])) : '';
+        $results[] = $this->check(
+            !empty($auth_header),
+            __('Auth Header Protection', 'vgt-sentinel-ce'),
+            __('Authorization Headers detected.', 'vgt-sentinel-ce'),
+            __('Headers missing (Potential API restriction).', 'vgt-sentinel-ce'),
+            true
+        );
 
-        return $r;
+        return $results;
     }
 
     /**
-     * Versucht zu prüfen, ob Directory Listing aktiv ist (simulierter Check)
+     * Prüft das Vorhandensein von Schutzdateien gegen Directory Listing.
+     * * @return array
      */
-    private function check_directory_listing() {
-        $upload_dir = wp_upload_dir();
-        $target = $upload_dir['baseurl'];
-        // In einer echten Umgebung würde man hier einen HTTP-Request absetzen.
-        // Wir prüfen hier auf das Vorhandensein von Schutz-Dateien.
-        $has_protection = file_exists(ABSPATH . 'wp-content/index.php');
-        return $this->check($has_protection, 'Directory Browsing', 'Basisschutz aktiv.', 'Mögliches Directory Listing (index.php fehlt).', true);
+    private function check_directory_listing(): array {
+        $has_protection = file_exists(WPMU_PLUGIN_DIR . '/index.php') || file_exists(WP_CONTENT_DIR . '/index.php');
+        return $this->check(
+            $has_protection,
+            __('Directory Browsing', 'vgt-sentinel-ce'),
+            __('Base protection active.', 'vgt-sentinel-ce'),
+            __('Potential directory listing (index.php missing).', 'vgt-sentinel-ce'),
+            true
+        );
     }
 
     /**
-     * Zentraler Logic-Kernel für die Validierung
-     * @param bool $condition Die zu prüfende Bedingung
-     * @param string $name Name des Checks
-     * @param string $msg_a Nachricht für Fall A
-     * @param string $msg_b Nachricht für Fall B
-     * @param bool $reverse Invertiert die Logik (True = Condition ist gut)
+     * Zentraler Logic-Kernel für die Validierung.
+     * * @param bool   $condition Die zu prüfende Bedingung
+     * @param string $name      Name des Checks
+     * @param string $msg_a     Nachricht für Fall A
+     * @param string $msg_b     Nachricht für Fall B
+     * @param bool   $reverse   Invertiert die Logik (True = Condition ist gut)
+     * @return array Formatiertes Ergebnis
      */
-    private function check($condition, $name, $msg_a, $msg_b, $reverse = false) {
+    private function check(bool $condition, string $name, string $msg_a, string $msg_b, bool $reverse = false): array {
         $fail = $reverse ? !$condition : $condition;
         return [
             'check'  => $name,

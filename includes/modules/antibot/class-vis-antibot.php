@@ -5,10 +5,10 @@ if (!defined('ABSPATH')) exit;
 /**
  * MODULE: ANTIBOT (VGT SHIELD V2)
  * Status: DIAMANT SUPREME (Zero-UI Proof-of-Work)
- * Logic: Integrierte Konsolidierung von VGT Shield in den Sentinel Kernel.
- * Nutzt VIS_Network für O(1) IP Resolution, verzichtet auf externe Abhängigkeiten.
+ * Logic: Integrierte Konsolidierung von VGT Shield in den Sentinel Kernel. WP.org Compliant.
+ * Nutzt VGTS_Network für O(1) IP Resolution, verzichtet auf externe Abhängigkeiten.
  */
-class VIS_Antibot {
+class VGTS_Antibot {
     
     private array $options;
     
@@ -17,20 +17,20 @@ class VIS_Antibot {
 
         // VGT DRY: Scanner AJAX Logik wird unabhängig vom Modul-Status registriert (für UI)
         if (is_admin()) {
-            add_action('wp_ajax_vis_scan_plugin', [$this, 'ajax_scan_plugin']);
+            add_action('wp_ajax_vgts_scan_plugin', [$this, 'ajax_scan_plugin']);
         }
 
         if (empty($this->options['antibot_enabled'])) return;
 
         // 1. Initialisierung Engine
         add_action('wp_enqueue_scripts', [$this, 'inject_engine']);
-        add_shortcode('vis_antibot', [$this, 'render_shortcode']);
+        add_shortcode('vgts_antibot', [$this, 'render_shortcode']);
 
         // 2. Kryptografische Schnittstelle (TITAN kompatibel)
         add_action('rest_api_init', function () {
-            register_rest_route('vis-antibot/v1', '/challenge', [
-                'methods' => 'GET',
-                'callback' => [$this, 'api_get_challenge'],
+            register_rest_route('vgts-antibot/v1', '/challenge', [
+                'methods'             => 'GET',
+                'callback'            => [$this, 'api_get_challenge'],
                 'permission_callback' => '__return_true'
             ]);
         });
@@ -60,45 +60,47 @@ class VIS_Antibot {
     // --- ENGINE & INJECTION ---
 
     public function inject_engine(): void {
-        if (wp_script_is('vis-antibot-engine', 'enqueued')) return;
+        if (wp_script_is('vgts-antibot-engine', 'enqueued')) return;
 
         wp_enqueue_script(
-            'vis-antibot-engine', 
-            VIS_URL . 'includes/modules/antibot/assets/js/vis-antibot-engine.js', 
+            'vgts-antibot-engine', 
+            VGTS_URL . 'includes/modules/antibot/assets/js/vis-antibot-engine.js', 
             [], 
-            VIS_VERSION, 
+            VGTS_VERSION, 
             true
         );
 
-        wp_localize_script('vis-antibot-engine', 'visAntibotConfig', [
-            'apiUrl' => esc_url_raw(rest_url('vis-antibot/v1/challenge')),
-            'workerUrl' => esc_url_raw(VIS_URL . 'includes/modules/antibot/assets/js/vis-antibot-worker.js')
+        wp_localize_script('vgts-antibot-engine', 'vgtsAntibotConfig', [
+            'apiUrl'    => esc_url_raw(rest_url('vgts-antibot/v1/challenge')),
+            'workerUrl' => esc_url_raw(VGTS_URL . 'includes/modules/antibot/assets/js/vis-antibot-worker.js')
         ]);
     }
 
     public function render_shortcode(): string {
         $this->inject_engine();
-        return '<div class="vis-antibot-anchor" style="display:none;" data-vis-status="active"></div>';
+        return '<div class="vgts-antibot-anchor" style="display:none;" data-vgts-status="active"></div>';
     }
 
     // --- CRYPTOGRAPHIC KERNEL ---
 
     private function get_dynamic_salt(int $offset_days = 0): string {
         $date = gmdate('Y-m-d', time() + ($offset_days * 86400));
-        return hash('sha512', $date . wp_salt('auth') . wp_salt('secure_auth') . 'VIS_MATRIX_SALT');
+        return hash('sha512', $date . wp_salt('auth') . wp_salt('secure_auth') . 'VGTS_MATRIX_SALT');
     }
 
     private function get_client_fingerprint(int $offset_days = 0): string {
         // OMEGA PROTOCOL: Nutzung des gehärteten Sentinel Kernels
-        $ip = class_exists('VIS_Network') ? VIS_Network::resolve_true_ip() : ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
-        $ua = sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? 'unknown_vgt_agent');
+        $raw_ip = class_exists('VGTS_Network') ? VGTS_Network::resolve_true_ip() : ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $ip = sanitize_text_field(wp_unslash($raw_ip));
+        $ua = sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'] ?? 'unknown_vgt_agent'));
+        
         return hash('sha384', $ip . $ua . $this->get_dynamic_salt($offset_days));
     }
 
     public function api_get_challenge() {
-        $timestamp = time();
+        $timestamp  = time();
         $difficulty = (int) ($this->options['antibot_difficulty'] ?? 3);
-        $seed = hash_hmac('sha256', $timestamp . $this->get_client_fingerprint(0), $this->get_dynamic_salt(0));
+        $seed       = hash_hmac('sha256', $timestamp . $this->get_client_fingerprint(0), $this->get_dynamic_salt(0));
         
         return rest_ensure_response([
             'seed'       => $seed,
@@ -108,11 +110,11 @@ class VIS_Antibot {
     }
 
     public function get_pow_payload(): string {
-        if (!empty($_POST['vis_pow_payload'])) {
-            return sanitize_text_field(wp_unslash($_POST['vis_pow_payload']));
+        if (!empty($_POST['vgts_pow_payload'])) {
+            return sanitize_text_field(wp_unslash($_POST['vgts_pow_payload']));
         }
-        if (!empty($_SERVER['HTTP_X_VIS_ANTIBOT_POW'])) {
-            return sanitize_text_field(wp_unslash($_SERVER['HTTP_X_VIS_ANTIBOT_POW']));
+        if (!empty($_SERVER['HTTP_X_VGTS_ANTIBOT_POW'])) {
+            return sanitize_text_field(wp_unslash($_SERVER['HTTP_X_VGTS_ANTIBOT_POW']));
         }
         return '';
     }
@@ -126,17 +128,17 @@ class VIS_Antibot {
         }
 
         $timestamp = (int) $data['timestamp'];
-        $duration = time() - $timestamp;
+        $duration  = time() - $timestamp;
         
         // TTL: 1800s (30 Min)
         if ($duration < 1 || $duration > 1800) return false;
 
         $hash_input = $data['seed'] . $data['nonce'];
-        $hash = hash('sha256', $hash_input);
+        $hash       = hash('sha256', $hash_input);
         
         // Replay Protection
-        $cache_key = 'vis_pow_' . $hash;
-        if (wp_cache_get($cache_key, 'vis_antibot') || get_transient($cache_key)) {
+        $cache_key = 'vgts_pow_' . $hash;
+        if (wp_cache_get($cache_key, 'vgts_antibot') || get_transient($cache_key)) {
             return false;
         }
 
@@ -147,13 +149,13 @@ class VIS_Antibot {
             return false;
         }
 
-        $difficulty = (int) ($this->options['antibot_difficulty'] ?? 3);
+        $difficulty    = (int) ($this->options['antibot_difficulty'] ?? 3);
         $target_prefix = str_repeat('0', $difficulty);
         
         $is_valid = str_starts_with($hash, $target_prefix);
 
         if ($is_valid) {
-            wp_cache_set($cache_key, 1, 'vis_antibot', 1800);
+            wp_cache_set($cache_key, 1, 'vgts_antibot', 1800);
             set_transient($cache_key, 1, 1800);
         }
 
@@ -165,9 +167,10 @@ class VIS_Antibot {
     private function attach_dynamic_hooks(): void {
         $custom_hooks = $this->options['antibot_custom_hooks'] ?? [];
         if (!is_array($custom_hooks) || empty($custom_hooks)) return;
+        
         foreach ($custom_hooks as $hook) {
-            if (!empty($hook)) {
-                add_action($hook, [$this, 'validate_dynamic_hook'], 1, 0); 
+            if (!empty($hook) && is_string($hook)) {
+                add_action(sanitize_key($hook), [$this, 'validate_dynamic_hook'], 1, 0); 
             }
         }
     }
@@ -175,27 +178,28 @@ class VIS_Antibot {
     public function validate_dynamic_hook(): void {
         $payload = $this->get_pow_payload();
         if (empty($payload) && empty($_POST)) return; 
+        
         if (!$this->validate_pow($payload)) {
-            wp_die('VGT SENTINEL: Dynamic Security Matrix Triggered. Access Denied.');
+            wp_die(esc_html__('VGT SENTINEL: Dynamic Security Matrix Triggered. Access Denied.', 'vgt-sentinel-ce'));
         }
     }
 
     public function validate_woo_auth($validation_error, $username = '', $password = '') {
         if (!$this->validate_pow($this->get_pow_payload())) {
-            $validation_error->add('vis_error', '<strong>VGT Sentinel</strong>: Security Validation Failed (Proof-of-Work Required).');
+            $validation_error->add('vgts_error', wp_kses_post(__('<strong>VGT Sentinel</strong>: Security Validation Failed (Proof-of-Work Required).', 'vgt-sentinel-ce')));
         }
         return $validation_error;
     }
 
     public function validate_woo_checkout($data, $errors): void {
         if (!$this->validate_pow($this->get_pow_payload())) {
-            $errors->add('vis_error', '<strong>VGT Sentinel</strong>: Checkout Security Validation Failed.');
+            $errors->add('vgts_error', wp_kses_post(__('<strong>VGT Sentinel</strong>: Checkout Security Validation Failed.', 'vgt-sentinel-ce')));
         }
     }
 
     public function validate_wpforms($errors, $form_data) {
         if (!$this->validate_pow($this->get_pow_payload())) {
-            $errors[$form_data['id']]['header'] = 'VGT SENTINEL: Security Matrix Validation Failed.';
+            $errors[$form_data['id']]['header'] = esc_html__('VGT SENTINEL: Security Matrix Validation Failed.', 'vgt-sentinel-ce');
         }
         return $errors;
     }
@@ -203,14 +207,14 @@ class VIS_Antibot {
     public function validate_gform($validation_result) {
         if (!$this->validate_pow($this->get_pow_payload())) {
             $validation_result['is_valid'] = false;
-            $validation_result['form']['vis_error'] = 'VGT SENTINEL: Validation Failed.';
+            $validation_result['form']['vgts_error'] = esc_html__('VGT SENTINEL: Validation Failed.', 'vgt-sentinel-ce');
         }
         return $validation_result;
     }
 
     public function validate_comment_submission($commentdata) {
         if (!$this->validate_pow($this->get_pow_payload())) {
-            wp_die('VGT SENTINEL: Access Denied. Kognitive Anomalie erkannt (Proof-of-Work failed).');
+            wp_die(esc_html__('VGT SENTINEL: Access Denied. Kognitive Anomalie erkannt (Proof-of-Work failed).', 'vgt-sentinel-ce'));
         }
         return $commentdata;
     }
@@ -219,30 +223,30 @@ class VIS_Antibot {
         if (!$this->validate_pow($this->get_pow_payload())) {
             $abort = true;
             $submission->set_status('validation_failed');
-            $submission->set_response('VGT SENTINEL: Access Denied. Security Matrix Validation Failed.');
+            $submission->set_response(esc_html__('VGT SENTINEL: Access Denied. Security Matrix Validation Failed.', 'vgt-sentinel-ce'));
         }
     }
 
     // --- DEEP PLUGIN SCANNER (AJAX) ---
 
     public function ajax_scan_plugin(): void {
-        check_ajax_referer('vis_nonce', 'nonce');
+        check_ajax_referer('vgts_nonce', 'nonce');
         if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized');
 
-        $plugin_file = sanitize_text_field($_POST['plugin_file'] ?? '');
+        $plugin_file = sanitize_text_field(wp_unslash($_POST['plugin_file'] ?? ''));
         if (empty($plugin_file)) wp_send_json_error('No plugin selected');
 
         // Sandbox Check & Path Normalization
-        $base_dir = wp_normalize_path(WP_PLUGIN_DIR);
+        $base_dir       = wp_normalize_path(WP_PLUGIN_DIR);
         $requested_path = wp_normalize_path($base_dir . '/' . dirname($plugin_file));
-        $real_path = realpath($requested_path);
+        $real_path      = realpath($requested_path);
         
         if (!$real_path || strpos(wp_normalize_path($real_path), $base_dir) !== 0 || !is_dir($real_path)) {
-            wp_send_json_error('VGT SENTINEL: Sandbox Escape Detektiert und Blockiert.');
+            wp_send_json_error(esc_html__('VGT SENTINEL: Sandbox Escape Detektiert und Blockiert.', 'vgt-sentinel-ce'));
         }
 
-        $hooks = [];
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($real_path));
+        $hooks   = [];
+        $files   = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($real_path));
         $pattern = '/(?:do_action|apply_filters)\s*\(\s*[\'"]([a-zA-Z0-9_\-]+)[\'"]/S';
 
         foreach ($files as $file) {

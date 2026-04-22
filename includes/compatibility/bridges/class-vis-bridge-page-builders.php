@@ -1,12 +1,17 @@
 <?php
-if (!defined('ABSPATH')) exit;
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
- * BRIDGE: PAGE BUILDERS (Elementor, Divi, etc.)
+ * BRIDGE: PAGE BUILDERS (Elementor, Divi, Oxygen, etc.)
+ * STATUS: PLATIN STATUS (WP.ORG COMPLIANT)
  * Deaktiviert aggressive Sicherheitsfeatures während des Editierens,
  * um Konflikte im Frontend-Editor zu vermeiden.
  */
-class VIS_Bridge_PageBuilders {
+class VGTS_Bridge_PageBuilders {
 
     public function __construct() {
         // Wenn wir im Editor-Modus sind, entschärfen wir das System
@@ -15,32 +20,53 @@ class VIS_Bridge_PageBuilders {
         }
     }
 
-    private function is_editing_mode() {
-        // Elementor
-        if (isset($_GET['elementor-preview'])) return true;
+    /**
+     * Erkennt, ob die aktuelle Anfrage von einem Frontend-Editor stammt.
+     * * @return bool
+     */
+    private function is_editing_mode(): bool {
+        // [WP.ORG COMPLIANCE]: Safe Superglobal Access
+        $get_data = wp_unslash($_GET);
+
+        // Elementor Preview Check
+        if (isset($get_data['elementor-preview'])) {
+            return true;
+        }
         
-        // Divi
-        if (isset($_GET['et_fb'])) return true;
+        // Divi Visual Builder Check
+        if (isset($get_data['et_fb'])) {
+            return true;
+        }
         
-        // Oxygen
-        if (defined('SHOW_CT_BUILDER') && SHOW_CT_BUILDER) return true;
+        // Oxygen Builder Check
+        if (defined('SHOW_CT_BUILDER') && SHOW_CT_BUILDER) {
+            return true;
+        }
         
-        // WP Customizer
-        if (is_customize_preview()) return true;
+        // WordPress Customizer Preview
+        if (is_customize_preview()) {
+            return true;
+        }
 
         return false;
     }
 
-    private function disable_interventions() {
-        // Deaktiviere Hades Output Buffering (falls aktiv)
-        // Hinweis: Hades v3 nutzt Filter, aber falls wir Output-Processing hinzufügen:
-        add_filter('vis_hades_skip_buffer', '__return_true');
+    /**
+     * Reduziert die Sicherheitsstrenge für eine reibungslose UX im Editor.
+     */
+    private function disable_interventions(): void {
+        // Deaktiviere Hades Output Buffering (Präfix-Synchronisiert)
+        add_filter('vgts_hades_skip_buffer', '__return_true');
 
-        // Deaktiviere Aegis HTML Injection (falls vorhanden)
-        add_filter('vis_aegis_skip_injection', '__return_true');
+        // Deaktiviere Aegis Payload Interception (Präfix-Synchronisiert)
+        add_filter('vgts_aegis_skip_injection', '__return_true');
 
         // Headers lockern (X-Frame-Options verhindern oft das Laden des Editors in iFrames)
-        header_remove('X-Frame-Options');
-        header('X-Frame-Options: SAMEORIGIN'); // Fallback, oft toleranter
+        if (!headers_sent()) {
+            if (function_exists('header_remove')) {
+                header_remove('X-Frame-Options');
+            }
+            header('X-Frame-Options: SAMEORIGIN', true);
+        }
     }
 }

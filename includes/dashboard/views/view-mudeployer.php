@@ -1,64 +1,108 @@
 <?php
 declare(strict_types=1);
-if (!defined('ABSPATH')) exit;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * VIEW: PRE-BOOT MU-DEPLOYER (MANUAL)
+ * STATUS: DIAMANT VGT SUPREME
+ * Architecture: Clean SoC & VGT Apex UI Compliance
+ */
 
 $mu_dir  = defined('WPMU_PLUGIN_DIR') ? WPMU_PLUGIN_DIR : wp_normalize_path(WP_CONTENT_DIR . '/mu-plugins');
-$mu_file = $mu_dir . '/0-vgt-sentinel-loader.php';
+$mu_file = $mu_dir . '/0-vgts-sentinel-loader.php';
 
-// Dynamische Pfad-Generierung für den konkreten Server
-$vgt_target = wp_normalize_path(VGT_SENTINEL_PATH . 'vision-integrity-sentinel.php');
-
+// Dynamische Pfad-Generierung für die korrekte Plugin-Basis
+$vgts_target = wp_normalize_path(VGTS_PATH . 'vision-integrity-sentinel.php');
 $is_deployed = file_exists($mu_file);
 
-// Der Code, den der Admin manuell anlegen muss
+// Generierung des Payloads für die manuelle Anlage
 $mu_content = "<?php\n" .
 "/**\n" .
 " * Plugin Name: VGT Sentinel MU-Loader (Hardened)\n" .
-" * Description: O(1) Pre-Boot Interception. Läd Sentinel isoliert vor allen anderen Plugins.\n" .
-" * Version: 2.0.0\n" .
+" * Description: O(1) Pre-Boot Interception. Lädt Sentinel isoliert vor allen anderen Plugins.\n" .
+" * Version: 2.1.0\n" .
 " * Author: VisionGaiaTechnology\n" .
-" */\n" .
+" */\n\n" .
 "// VGT HARDENING: Strict Access Protocol\n" .
 "if (!defined('ABSPATH')) { header('HTTP/1.0 403 Forbidden'); exit('VGT: Protocol Violation'); }\n\n" .
 "// Kognitive Boot-Signatur setzen\n" .
-"define('VGT_SENTINEL_MU_BOOT', true);\n\n" .
-"\$vgt_core = '" . esc_html($vgt_target) . "';\n\n" .
+"if (!defined('VGTS_SENTINEL_MU_BOOT')) {\n" .
+"    define('VGTS_SENTINEL_MU_BOOT', true);\n" .
+"}\n\n" .
+"\$vgts_core = '" . esc_html($vgts_target) . "';\n\n" .
 "// Memory Safe & Anti-Crash Validation\n" .
-"if (file_exists(\$vgt_core) && is_readable(\$vgt_core)) {\n" .
-"    require_once \$vgt_core;\n" .
+"if (file_exists(\$vgts_core) && is_readable(\$vgts_core)) {\n" .
+"    require_once \$vgts_core;\n" .
 "}\n";
 ?>
 
-<div id="vis-mu-container">
-    <div class="vis-card" style="border-top: 3px solid #06b6d4; font-family: 'Inter', sans-serif;">
-        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--vis-border);">
-            <span class="dashicons dashicons-hammer" style="font-size: 32px; width: 32px; height: 32px; color: #06b6d4;"></span>
-            <div>
-                <h2 style="margin: 0; color: #fff; font-size: 1.2rem; font-weight: 700;">PRE-BOOT MU-DEPLOYER (MANUAL)</h2>
-                <p style="margin: 5px 0 0 0; color: var(--vis-text-secondary); font-size: 12px;">Zero-Latency Plugin Loading & Core Interception</p>
-            </div>
-        </div>
-
-        <p class="vis-lang-de" style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin-bottom: 30px;">
-            Aus architektonischen Sicherheitsgründen (WP.org Compliance) schreibt Sentinel nicht selbstständig in das Dateisystem. 
-            Um Sentinel auf <strong>Instanz 0</strong> zu heben, erstelle manuell die Datei <code>0-vgt-sentinel-loader.php</code> im Verzeichnis <code>/wp-content/mu-plugins/</code> und kopiere den untenstehenden Code hinein.
-        </p>
-
-        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--vis-border); border-radius: 8px; padding: 25px; margin-bottom: 25px;">
-            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: <?php echo $is_deployed ? '#10b981' : '#ef4444'; ?>; box-shadow: 0 0 10px <?php echo $is_deployed ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)'; ?>;"></div>
+<div id="vgts-mu-container" class="vgts-view-animate">
+    
+    <div class="vgts-card" style="border-left: 4px solid var(--vgts-accent);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid var(--vgts-border); padding-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span class="dashicons dashicons-admin-network" style="font-size: 32px; width: 32px; height: 32px; color: var(--vgts-accent); filter: drop-shadow(0 0 8px var(--vgts-accent-glow));"></span>
                 <div>
-                    <h4 class="vis-lang-de" style="margin: 0 0 5px 0; color: #fff; font-size: 16px; letter-spacing: 0.5px;">
-                        <?php echo $is_deployed ? 'MU-LOADER IST AKTIV UND VERRIEGELT' : 'MU-LOADER FEHLT (STANDARD-MODUS)'; ?>
-                    </h4>
+                    <h2 style="margin: 0; color: #fff; font-size: 18px; font-weight: 800; letter-spacing: -0.5px;">MU-DEPLOYER</h2>
+                    <p style="margin: 2px 0 0 0; color: var(--vgts-text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Pre-Boot Security Layer</p>
                 </div>
             </div>
-
-            <?php if (!$is_deployed): ?>
-                <div style="position: relative;">
-                    <textarea readonly style="width: 100%; height: 280px; background: #020617; color: #10b981; font-family: monospace; font-size: 11px; padding: 15px; border-radius: 4px; border: 1px solid #1e293b; resize: none;"><?php echo esc_textarea($mu_content); ?></textarea>
-                </div>
-            <?php endif; ?>
+            
+            <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--vgts-border);">
+                <div class="vgts-mu-status-indicator <?php echo $is_deployed ? 'vgts-mu-active' : 'vgts-mu-inactive'; ?>"></div>
+                <span style="font-size: 11px; font-weight: 800; color: <?php echo $is_deployed ? 'var(--vgts-success)' : 'var(--vgts-danger)'; ?>; letter-spacing: 0.5px;">
+                    <?php echo $is_deployed ? 'DEPLOYED' : 'NOT DEPLOYED'; ?>
+                </span>
+            </div>
         </div>
+
+        <div style="color: var(--vgts-text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 25px;">
+            <p class="vgts-lang-de">Der MU-Deployer ermöglicht eine extrem frühe Filterung von Angriffen. Durch die Platzierung in den 'mu-plugins' wird Sentinel geladen, noch bevor WordPress die regulären Plugins initialisiert.</p>
+            <p class="vgts-lang-en">The MU-Deployer enables extremely early threat filtering. By placing it in 'mu-plugins', Sentinel is loaded even before WordPress initializes regular plugins.</p>
+        </div>
+
+        <?php if (!$is_deployed): ?>
+            <div style="margin-top: 30px; padding: 25px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid var(--vgts-border);">
+                <h4 style="color: #fff; font-size: 13px; margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <span class="dashicons dashicons-clipboard" style="font-size: 18px; width: 18px; height: 18px; color: var(--vgts-accent);"></span>
+                    MANUELLE INSTALLATION (WP.ORG COMPLIANT):
+                </h4>
+                
+                <p class="vgts-lang-de" style="font-size: 13px; color: var(--vgts-text-secondary); margin-bottom: 15px;">
+                    Kopieren Sie den folgenden Code in eine neue Datei namens <code>0-vgts-sentinel-loader.php</code> im Ordner <code>wp-content/mu-plugins/</code>.
+                </p>
+                <p class="vgts-lang-en" style="font-size: 13px; color: var(--vgts-text-secondary); margin-bottom: 15px;">
+                    Copy the following code into a new file named <code>0-vgts-sentinel-loader.php</code> inside the <code>wp-content/mu-plugins/</code> folder.
+                </p>
+                
+                <textarea class="vgts-mu-code-block" readonly style="width: 100%; height: 220px; font-family: var(--vgts-font-mono); font-size: 12px; background: #020617; color: var(--vgts-accent); border: 1px solid var(--vgts-border); padding: 15px; border-radius: 4px; resize: none;"><?php echo esc_textarea($mu_content); ?></textarea>
+                
+                <div style="margin-top: 15px; display: flex; align-items: center; gap: 8px; color: var(--vgts-warning); font-size: 11px; font-weight: 700;">
+                    <span class="dashicons dashicons-warning" style="font-size: 16px; width: 16px; height: 16px;"></span>
+                    <span class="vgts-lang-de">HINWEIS: Erstellen Sie den Ordner 'mu-plugins' manuell, falls dieser fehlt.</span>
+                    <span class="vgts-lang-en">NOTE: Create the 'mu-plugins' folder manually if it is missing.</span>
+                </div>
+            </div>
+        <?php else: ?>
+            <div style="padding: 20px; background: var(--vgts-success-bg); border: 1px solid var(--vgts-success); border-radius: 8px; display: flex; align-items: center; gap: 15px;">
+                <span class="dashicons dashicons-yes-alt" style="color: var(--vgts-success); font-size: 24px; width: 24px; height: 24px;"></span>
+                <p style="margin: 0; color: var(--vgts-success); font-weight: 700; font-size: 13px;">
+                    MU-Loader aktiv. Sentinel operiert im High-Priority Interception Modus.
+                </p>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="vgts-card" style="background: rgba(6, 182, 212, 0.02); border: 1px dashed rgba(6, 182, 212, 0.2);">
+        <h5 style="margin: 0 0 10px 0; color: var(--vgts-accent); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">SYSTEM ARCHITECTURE:</h5>
+        <p class="vgts-lang-de" style="margin: 0; color: var(--vgts-text-secondary); font-size: 12px; line-height: 1.6;">
+            Der MU-Loader ermöglicht es Sentinel, HTTP-Requests zu analysieren, bevor andere Plugins geladen werden. Dies verhindert, dass anfällige Plugins (z.B. mit SQLi-Lücken) ausgeführt werden, bevor Aegis den bösartigen Payload neutralisiert hat. Dies ist das Fundament für ein echtes Zero-Trust Environment.
+        </p>
+        <p class="vgts-lang-en" style="margin: 0; color: var(--vgts-text-secondary); font-size: 12px; line-height: 1.6;">
+            The MU-Loader allows Sentinel to analyze HTTP requests before other plugins are loaded. This prevents vulnerable plugins (e.g., with SQLi gaps) from being executed before Aegis has neutralized the malicious payload. This is the foundation for a true zero-trust environment.
+        </p>
     </div>
 </div>

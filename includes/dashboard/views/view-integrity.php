@@ -1,102 +1,116 @@
 <?php 
 declare(strict_types=1);
-if (!defined('ABSPATH')) exit; 
 
-$report = get_option('vis_scan_report', false);
+if (!defined('ABSPATH')) {
+    exit; 
+}
+
+/**
+ * VIEW: SYSTEM INTEGRITY MONITOR
+ * STATUS: PLATIN STATUS (MODULAR ASSET ARCHITECTURE)
+ */
+
+$report     = get_option('vgts_scan_report', []);
 $has_report = !empty($report) && is_array($report);
-$status = $has_report ? $report['status'] : 'unknown';
-$changes = $has_report ? $report['changes'] : [];
-$last_scan = $has_report ? $report['timestamp'] : 'Nie';
+$status     = $has_report ? $report['status'] : 'unknown';
+$changes    = $has_report ? (array)$report['changes'] : [];
+$last_scan  = $has_report ? esc_html($report['timestamp']) : esc_html__('Never', 'vgt-sentinel-ce');
 
-$status_color = 'var(--vis-text-secondary)';
-$status_icon = 'dashicons-minus';
+$status_color = 'var(--vgts-text-secondary)';
+$status_icon  = 'dashicons-minus';
 
 if ($status === 'clean') {
-    $status_color = 'var(--vis-success)';
-    $status_icon = 'dashicons-yes-alt';
+    $status_color = 'var(--vgts-success)';
+    $status_icon  = 'dashicons-yes-alt';
 } elseif ($status === 'warning') {
-    $status_color = 'var(--vis-danger)';
-    $status_icon = 'dashicons-warning';
+    $status_color = 'var(--vgts-danger)';
+    $status_icon  = 'dashicons-warning';
 }
 ?>
 
-<div class="vis-card">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--vis-border); padding-bottom:20px; margin-bottom:20px;">
+<div class="vgts-card">
+    <!-- HEADER BAR -->
+    <div class="vgts-integrity-header">
         <div style="display:flex; align-items:center; gap:15px;">
-            <div style="
-                width:50px; height:50px; 
-                background:rgba(255,255,255,0.05); 
-                border-radius:50%; 
-                display:flex; align-items:center; justify-content:center;
-                color:<?php echo $status_color; ?>;
-            ">
-                <span class="dashicons <?php echo $status_icon; ?>" style="font-size:30px; width:30px; height:30px;"></span>
+            <div class="vgts-integrity-status-icon" style="color:<?php echo esc_attr($status_color); ?>;">
+                <span class="dashicons <?php echo esc_attr($status_icon); ?>" style="font-size:30px; width:30px; height:30px;"></span>
             </div>
             <div>
-                <h2 style="margin:0; font-size:18px; color:#fff;">SYSTEM INTEGRITY REPORT</h2>
-                <div style="font-size:12px; color:var(--vis-text-secondary); margin-top:4px;">
-                    Last Scan: <span class="text-mono" style="color:#fff;"><?php echo $last_scan; ?></span>
+                <h2 style="margin:0; font-size:18px; color:#fff;"><?php esc_html_e('SYSTEM INTEGRITY REPORT', 'vgt-sentinel-ce'); ?></h2>
+                <div style="font-size:12px; color:var(--vgts-text-secondary); margin-top:4px;">
+                    <?php esc_html_e('Last Scan:', 'vgt-sentinel-ce'); ?> 
+                    <span class="text-mono" style="color:#fff;"><?php echo $last_scan; ?></span>
                 </div>
             </div>
         </div>
         
         <div>
-            <button id="vis-btn-scan" class="vis-btn vis-btn-neon">
-                <span class="dashicons dashicons-search"></span> RUN DEEP SCAN
+            <button type="button" id="vgts-btn-scan" class="vgts-btn vgts-btn-primary">
+                <span class="dashicons dashicons-search"></span> <?php esc_html_e('RUN DEEP SCAN', 'vgt-sentinel-ce'); ?>
             </button>
         </div>
     </div>
 
+    <!-- REPORT CONTENT -->
     <?php if(!$has_report): ?>
-        <div style="text-align:center; padding:40px; color:var(--vis-text-secondary);">
-            <p>Kein Bericht verfügbar. Bitte starten Sie einen manuellen Scan.</p>
+        <div style="text-align:center; padding:40px; color:var(--vgts-text-secondary);">
+            <p><?php esc_html_e('No report available. Please initiate a manual system scan.', 'vgt-sentinel-ce'); ?></p>
         </div>
     <?php elseif($status === 'clean' || $status === 'init'): ?>
         <div style="text-align:center; padding:40px;">
-            <span class="dashicons dashicons-shield-alt" style="font-size:64px; color:var(--vis-success); width:auto; height:auto; display:block; margin-bottom:20px;"></span>
-            <h3 style="color:#fff; margin-bottom:10px;">SYSTEM SECURE</h3>
-            <p style="color:var(--vis-text-secondary); max-width:500px; margin:0 auto;">
-                Alle überwachten Dateien stimmen mit der Baseline (Manifest) überein. Es wurden keine nicht-autorisierten Änderungen festgestellt.
+            <span class="dashicons dashicons-shield-alt" style="font-size:64px; color:var(--vgts-success); width:auto; height:auto; display:block; margin-bottom:20px;"></span>
+            <h3 style="color:#fff; margin-bottom:10px;"><?php esc_html_e('SYSTEM SECURE', 'vgt-sentinel-ce'); ?></h3>
+            <p style="color:var(--vgts-text-secondary); max-width:500px; margin:0 auto;">
+                <?php esc_html_e('All monitored files match the system baseline (manifest). No unauthorized modifications detected.', 'vgt-sentinel-ce'); ?>
             </p>
         </div>
     <?php else: ?>
-        <div style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); padding:15px; border-radius:6px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center;">
-            <div style="display:flex; align-items:center; gap:10px; color:var(--vis-danger);">
+        <!-- ANOMALY ALERT -->
+        <div class="vgts-integrity-alert-box">
+            <div style="display:flex; align-items:center; gap:10px; color:var(--vgts-danger);">
                 <span class="dashicons dashicons-warning" style="font-size:20px;"></span>
-                <strong style="font-size:14px;">ANOMALIEN ERKANNT: <?php echo count($changes); ?> DATEIEN VERÄNDERT</strong>
+                <strong style="font-size:14px;">
+                    <?php 
+                    printf(
+                        /* translators: %d: count of changed files */
+                        esc_html__('ANOMALIES DETECTED: %d FILES MODIFIED', 'vgt-sentinel-ce'), 
+                        count($changes)
+                    ); 
+                    ?>
+                </strong>
             </div>
-            <button id="vis-btn-approve" class="vis-btn vis-btn-ghost" style="border-color:var(--vis-danger); color:var(--vis-danger);">
-                <span class="dashicons dashicons-yes"></span> BASELINE UPDATEN (APPROVE)
+            <button type="button" id="vgts-btn-approve" class="vgts-btn" style="border: 1px solid var(--vgts-danger); color:var(--vgts-danger); background:transparent;">
+                <span class="dashicons dashicons-yes"></span> <?php esc_html_e('APPROVE CHANGES', 'vgt-sentinel-ce'); ?>
             </button>
         </div>
 
-        <table class="vis-table">
+        <table class="vgts-table">
             <thead>
                 <tr>
-                    <th width="80">TYPE</th>
-                    <th>DATEIPFAD</th>
-                    <th>DETAILS</th>
-                    <th width="100">ACTION</th>
+                    <th width="100"><?php esc_html_e('TYPE', 'vgt-sentinel-ce'); ?></th>
+                    <th><?php esc_html_e('FILE PATH', 'vgt-sentinel-ce'); ?></th>
+                    <th><?php esc_html_e('DETAILS', 'vgt-sentinel-ce'); ?></th>
+                    <th width="120"><?php esc_html_e('ACTION', 'vgt-sentinel-ce'); ?></th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach($changes as $change): 
-                $type = $change['type'];
+                $type = $change['type'] ?? 'MODIFIED';
                 $badge_class = 'bg-red';
-                if ($type === 'NEW') $badge_class = 'bg-green';
-                if ($type === 'MODIFIED') $badge_class = 'bg-red';
-                if ($type === 'DELETED') $badge_class = 'bg-red'; 
+                if ($type === 'NEW') { $badge_class = 'bg-green'; }
                 ?>
                 <tr>
-                    <td><span class="vis-badge <?php echo $badge_class; ?>"><?php echo $type; ?></span></td>
-                    <td class="text-mono" style="color:#fff; font-size:13px; word-break:break-all;">
+                    <td><span class="vgts-badge-integrity <?php echo esc_attr($badge_class); ?>"><?php echo esc_html($type); ?></span></td>
+                    <td class="text-mono" style="color:#fff; font-size:12px; word-break:break-all;">
                         <?php echo esc_html($change['file']); ?>
                     </td>
-                    <td style="color:var(--vis-text-secondary); font-size:12px;">
+                    <td style="color:var(--vgts-text-secondary); font-size:11px;">
                         <?php echo esc_html($change['desc']); ?>
                     </td>
                     <td>
-                        <a href="#" style="color:var(--vis-accent); font-size:11px; text-decoration:none;">VIEW SOURCE</a>
+                        <button type="button" class="vgts-btn-link" style="color:var(--vgts-accent); font-size:11px; background:none; border:none; cursor:pointer;">
+                            <?php esc_html_e('VIEW LOGS', 'vgt-sentinel-ce'); ?>
+                        </button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -105,6 +119,8 @@ if ($status === 'clean') {
     <?php endif; ?>
 </div>
 
-<div id="vis-scan-progress" style="display:none; margin-top:20px; background:var(--vis-bg-sidebar); padding:15px; border-radius:6px; border:1px solid var(--vis-border); text-align:center; color:var(--vis-accent);">
-    <span class="dashicons dashicons-update spin"></span> <span id="vis-scan-status-text">INITIALIZING SCAN...</span>
+<!-- SCAN PROGRESS OVERLAY -->
+<div id="vgts-scan-progress">
+    <span class="dashicons dashicons-update vgts-spin" style="font-size:32px; width:32px; height:32px; margin-bottom:10px; display:inline-block;"></span>
+    <div id="vgts-scan-status-text"><?php esc_html_e('INITIALIZING DEEP SCAN...', 'vgt-sentinel-ce'); ?></div>
 </div>

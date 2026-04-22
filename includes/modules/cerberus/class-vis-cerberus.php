@@ -4,21 +4,26 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * MODULE: CERBERUS (The Gatekeeper)
- * STATUS: GOLD/PLATIN HYBRID (Shared Hosting Optimized)
+ * STATUS: DIAMANT STATUS (WP.ORG COMPLIANT)
  * KOGNITIVE UPGRADES:
+ * - [ WP.ORG FIXED ]: Strict Prefixing (VGTS_).
+ * - [ WP.ORG FIXED ]: Sanitization of Superglobals via wp_unslash.
+ * - [ WP.ORG FIXED ]: Localization (i18n) & Output Escaping via wp_die.
  * - Filesystem State Tracking: Null DB-Hits während einer Brute-Force Welle.
  * - Anti-Timing Attack Sleep Delays bei positiven Ban-Hits.
- * - VGT FIX: Global Perimeter Lockdown (Blockiert die gesamte Website, nicht nur Login).
- * - VGT DIAMANT FIX: Atomare Dateioperationen (flock) gegen Concurrency/Race-Condition Bypasses.
+ * - Global Perimeter Lockdown (Blockiert die gesamte Website, nicht nur Login).
+ * - Atomare Dateioperationen (flock) gegen Concurrency/Race-Condition Bypasses.
  */
-class VIS_Cerberus {
+class VGTS_Cerberus {
 
     private int $max_retries = 3;
     private int $lockout_time = 3600; // 1 Stunde Lockout
     private string $vault_dir;
 
+    private static ?self $instance = null;
+
     public function __construct() {
-        $this->vault_dir = defined('VIS_VAULT_DIR') ? VIS_VAULT_DIR : wp_upload_dir()['basedir'] . '/vis-vault-omega';
+        $this->vault_dir = defined('VGTS_VAULT_DIR') ? VGTS_VAULT_DIR : wp_upload_dir()['basedir'] . '/vgts-vault-omega';
 
         // VGT KERNEL FIX: GLOBAL PERIMETER GUARD
         // Feuert bei JEDEM Seitenaufruf. Ist die IP in der DB, stirbt der Request sofort.
@@ -31,6 +36,13 @@ class VIS_Cerberus {
         add_action('wp_login_failed', [$this, 'register_auth_failure']);
     }
 
+    public static function instance(): self {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
     /**
      * VGT GLOBAL PERIMETER LOCKDOWN
      * Schützt die komplette Website vor IP-Adressen, die von AEGIS oder Cerberus gebannt wurden.
@@ -40,19 +52,24 @@ class VIS_Cerberus {
         if (defined('DOING_CRON') && DOING_CRON) return;
 
         global $wpdb;
-        $ip = class_exists('VIS_Network') && method_exists('VIS_Network', 'resolve_true_ip') 
-              ? VIS_Network::resolve_true_ip() 
+        $raw_ip = class_exists('VGTS_Network') && method_exists('VGTS_Network', 'resolve_true_ip') 
+              ? VGTS_Network::resolve_true_ip() 
               : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
               
-        $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
+        $ip = sanitize_text_field(wp_unslash($raw_ip));
+        $table = $wpdb->prefix . (defined('VGTS_TABLE_BANS') ? VGTS_TABLE_BANS : 'vgts_apex_bans');
 
         // O(1) Lookup: Existiert die IP in der Ban-Liste?
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $is_banned = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE ip = %s LIMIT 1", $ip));
 
         if ($is_banned) {
-            http_response_code(403);
-            header('Connection: Close');
-            die('<h1>403 Forbidden</h1><hr>VISIONGAIA CERBERUS: Access Denied. Your IP has been permanently banned from this network.');
+            // [WP.ORG COMPLIANCE]: Translable, escaped abort sequence instead of hard die()
+            wp_die(
+                esc_html__('VISIONGAIA CERBERUS: Access Denied. Your IP has been permanently banned from this network.', 'vgt-sentinel-ce'),
+                esc_html__('403 Forbidden', 'vgt-sentinel-ce'),
+                ['response' => 403]
+            );
         }
     }
 
@@ -63,9 +80,14 @@ class VIS_Cerberus {
         if (is_wp_error($user)) return $user;
 
         global $wpdb;
-        $ip = class_exists('VIS_Network') ? VIS_Network::resolve_true_ip() : $_SERVER['REMOTE_ADDR'];
-        $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
+        $raw_ip = class_exists('VGTS_Network') && method_exists('VGTS_Network', 'resolve_true_ip') 
+              ? VGTS_Network::resolve_true_ip() 
+              : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+              
+        $ip = sanitize_text_field(wp_unslash($raw_ip));
+        $table = $wpdb->prefix . (defined('VGTS_TABLE_BANS') ? VGTS_TABLE_BANS : 'vgts_apex_bans');
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $is_banned = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE ip = %s LIMIT 1", $ip));
 
         if ($is_banned) {
@@ -73,8 +95,12 @@ class VIS_Cerberus {
             usleep(random_int(400000, 900000)); 
 
             return new WP_Error(
-                'vis_banned', 
-                "<strong>VISIONGAIA CERBERUS:</strong> Access Denied. Integrity matrix compromised by origin IP ({$ip})."
+                'vgts_banned', 
+                wp_kses_post(sprintf(
+                    /* translators: %s: The banned IP address */
+                    __('<strong>VISIONGAIA CERBERUS:</strong> Access Denied. Integrity matrix compromised by origin IP (%s).', 'vgt-sentinel-ce'),
+                    esc_html($ip)
+                ))
             );
         }
 
@@ -87,21 +113,25 @@ class VIS_Cerberus {
      * VGT DIAMANT FIX: Vollständig atomare Operationen zur Abwehr von Race Conditions.
      */
     public function register_auth_failure(string $username): void {
-        $ip = class_exists('VIS_Network') ? VIS_Network::resolve_true_ip() : $_SERVER['REMOTE_ADDR'];
+        $raw_ip = class_exists('VGTS_Network') && method_exists('VGTS_Network', 'resolve_true_ip') 
+              ? VGTS_Network::resolve_true_ip() 
+              : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+              
+        $ip = sanitize_text_field(wp_unslash($raw_ip));
         
-        // Vault Absicherung
+        // Vault Absicherung [WP.ORG COMPLIANCE: Use wp_mkdir_p instead of @mkdir]
         if (!is_dir($this->vault_dir)) {
-            @mkdir($this->vault_dir, 0755, true);
+            wp_mkdir_p($this->vault_dir);
         }
 
         $state_file = $this->vault_dir . '/cerb_' . md5($ip) . '.dat';
         $current_time = time();
         
         // VGT SUPREME FIX: Echte Atomare Operation mit flock
-        $fp = @fopen($state_file, 'c+');
-        if ($fp && @flock($fp, LOCK_EX)) { // Exklusiver Lock VOR dem Lesen
+        $fp = fopen($state_file, 'c+');
+        if ($fp && flock($fp, LOCK_EX)) { // Exklusiver Lock VOR dem Lesen
             $content = stream_get_contents($fp);
-            $data = explode(':', $content);
+            $data = explode(':', $content !== false ? $content : '');
             
             $last_attempt = (int)($data[0] ?? 0);
             $retries = (int)($data[1] ?? 0);
@@ -115,33 +145,45 @@ class VIS_Cerberus {
             
             if ($retries >= $this->max_retries) {
                 // Ausführung des Hard-Bans (Die einzige DB-Interaktion)
-                $this->execute_hard_ban($ip, "CERBERUS: Authentication threshold exceeded (Target: {$username})");
+                $this->ban_ip($ip, "CERBERUS: Authentication threshold exceeded (Target: " . sanitize_user($username) . ")");
                 ftruncate($fp, 0);
-                @unlink($state_file); // Cleanup State
+                
+                // File Cleanup
+                flock($fp, LOCK_UN);
+                fclose($fp);
+                unlink($state_file); 
+                return; // Early return because file is closed
             } else {
                 ftruncate($fp, 0);
                 rewind($fp);
                 fwrite($fp, $current_time . ':' . $retries);
             }
             
-            @flock($fp, LOCK_UN);
+            flock($fp, LOCK_UN);
             fclose($fp);
         }
     }
 
     /**
      * ATOMIC DB INSERT (Nur bei tatsächlichem Ban)
+     * Public API für andere Module (z.B. AEGIS)
      */
-    private function execute_hard_ban(string $ip, string $reason): void {
+    public function ban_ip(string $ip, string $reason): void {
         global $wpdb;
-        $table = $wpdb->prefix . (defined('VIS_TABLE_BANS') ? VIS_TABLE_BANS : 'vis_apex_bans');
+        $table = $wpdb->prefix . (defined('VGTS_TABLE_BANS') ? VGTS_TABLE_BANS : 'vgts_apex_bans');
 
+        // [WP.ORG COMPLIANCE]: URL Escaping & Sanitization
+        $uri = substr(esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'] ?? '/wp-login.php')), 0, 255);
+        $safe_ip = sanitize_text_field($ip);
+        $safe_reason = sanitize_text_field($reason);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query($wpdb->prepare(
             "INSERT IGNORE INTO {$table} (ip, reason, banned_at, request_uri) VALUES (%s, %s, %s, %s)",
-            $ip, 
-            $reason, 
+            $safe_ip, 
+            $safe_reason, 
             current_time('mysql'), 
-            substr(esc_url_raw($_SERVER['REQUEST_URI'] ?? '/wp-login.php'), 0, 255)
+            $uri
         ));
     }
 }

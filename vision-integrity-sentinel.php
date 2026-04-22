@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: VGT Sentinel
- * Description: Community Edition V2
- * Version: 1.5.0 APEX CORE
+ * Plugin Name: VGT Sentinel CE
+ * Description: A zero-trust Web Application Firewall (WAF) and security framework featuring robust brute-force protection, file integrity monitoring, and kernel-level system hardening.
+ * Version: 1.5.0
  * Author: VisionGaiaTechnology
  * Author URI: https://visiongaiatechnology.de
  * License: AGPLv3
@@ -12,50 +12,51 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- SYSTEM KONSTANTEN ---
-define('VIS_VERSION', '1.5.0');
-define('VIS_PATH', plugin_dir_path(__FILE__));
-define('VIS_URL', plugin_dir_url(__FILE__));
-define('VIS_SENTINEL_ICON', VIS_URL . 'Sentinel.png');
+define('VGTS_VERSION', '1.5.0');
+define('VGTS_PATH', plugin_dir_path(__FILE__));
+define('VGTS_URL', plugin_dir_url(__FILE__));
+define('VGTS_SENTINEL_ICON', VGTS_URL . 'Sentinel.png');
+
 // VAULT ARCHITEKTUR
 $upload_dir = wp_upload_dir();
-define('VIS_VAULT_DIR', $upload_dir['basedir'] . '/vis-vault-omega');
-define('VIS_MANIFEST_FILE', VIS_VAULT_DIR . '/integrity_matrix.json');
+define('VGTS_VAULT_DIR', $upload_dir['basedir'] . '/vgts-vault-omega');
+define('VGTS_MANIFEST_FILE', VGTS_VAULT_DIR . '/integrity_matrix.json');
 
-define('VIS_TABLE_BANS', 'vis_apex_bans');
-define('VIS_TABLE_LOGS', 'vis_omega_logs');
+define('VGTS_TABLE_BANS', 'vgts_apex_bans');
+define('VGTS_TABLE_LOGS', 'vgts_omega_logs');
 
 // --- INTELLIGENT AUTOLOADER ---
 spl_autoload_register(function ($class) {
-    if (strpos($class, 'VIS_') !== 0) return;
+    if (strpos($class, 'VGTS_') !== 0) return;
 
     $map = [
         // Core Logic
-        'VIS_Network'               => 'includes/core/class-vis-network.php',
+        'VGTS_Network'               => 'includes/core/class-vis-network.php',
         
         // Security Modules
-        'VIS_Scanner_Engine'        => 'includes/scanner/class-vis-scanner-engine.php',
-        'VIS_Aegis'                 => 'includes/modules/aegis/class-vis-aegis.php',
-        'VIS_Titan'                 => 'includes/modules/titan/class-vis-titan.php',
-        'VIS_Hades'                 => 'includes/modules/hades/class-vis-hades.php',
-        'VIS_Oracle'                => 'includes/modules/oracle/class-vis-oracle.php',
-        'VIS_Chronos'               => 'includes/modules/chronos/class-vis-chronos.php',
-        'VIS_Ghost_Trap'            => 'includes/modules/trap/class-vis-ghost-trap.php',
-        'VIS_Airlock'               => 'includes/modules/airlock/class-vis-airlock.php',
-        'VIS_Cerberus'              => 'includes/modules/cerberus/class-vis-cerberus.php',
-        'VIS_Styx_Lite'             => 'includes/modules/styx/class-vis-styx-lite.php',
-        'VIS_Filesystem_Guard'      => 'includes/modules/filesystem/class-vis-filesystem-guard.php',
-        'VIS_Antibot'               => 'includes/modules/antibot/class-vis-antibot.php', // V2 ADDITION
+        'VGTS_Scanner_Engine'        => 'includes/scanner/class-vis-scanner-engine.php',
+        'VGTS_Aegis'                 => 'includes/modules/aegis/class-vis-aegis.php',
+        'VGTS_Titan'                 => 'includes/modules/titan/class-vis-titan.php',
+        'VGTS_Hades'                 => 'includes/modules/hades/class-vis-hades.php',
+        'VGTS_Oracle'                => 'includes/modules/oracle/class-vis-oracle.php',
+        'VGTS_Chronos'               => 'includes/modules/chronos/class-vis-chronos.php',
+        'VGTS_Ghost_Trap'            => 'includes/modules/trap/class-vis-ghost-trap.php',
+        'VGTS_Airlock'               => 'includes/modules/airlock/class-vis-airlock.php',
+        'VGTS_Cerberus'              => 'includes/modules/cerberus/class-vis-cerberus.php',
+        'VGTS_Styx_Lite'             => 'includes/modules/styx/class-vis-styx-lite.php',
+        'VGTS_Filesystem_Guard'      => 'includes/modules/filesystem/class-vis-filesystem-guard.php',
+        'VGTS_Antibot'               => 'includes/modules/antibot/class-vis-antibot.php',
         
         // UI
-        'VIS_Dashboard_Core'        => 'includes/dashboard/class-vis-dashboard-core.php',
-        'VIS_Dashboard_View'        => 'includes/dashboard/class-vis-dashboard-view.php',
+        'VGTS_Dashboard_Core'        => 'includes/dashboard/class-vis-dashboard-core.php',
+        'VGTS_Dashboard_View'        => 'includes/dashboard/class-vis-dashboard-view.php',
         
         // Compatibility Layer
-        'VIS_Compatibility_Manager' => 'includes/compatibility/class-vis-compatibility-manager.php',
+        'VGTS_Compatibility_Manager' => 'includes/compatibility/class-vis-compatibility-manager.php',
     ];
 
-    if (isset($map[$class]) && file_exists(VIS_PATH . $map[$class])) {
-        require_once VIS_PATH . $map[$class];
+    if (isset($map[$class]) && file_exists(VGTS_PATH . $map[$class])) {
+        require_once VGTS_PATH . $map[$class];
     }
 });
 
@@ -64,15 +65,15 @@ register_activation_hook(__FILE__, function() {
     global $wpdb;
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
-    if (!file_exists(VIS_VAULT_DIR)) {
-        mkdir(VIS_VAULT_DIR, 0755, true);
-        file_put_contents(VIS_VAULT_DIR . '/index.php', '<?php // SILENCE IS GOLDEN ?>');
-        file_put_contents(VIS_VAULT_DIR . '/.htaccess', "Order Deny,Allow\nDeny from all");
+    if (!file_exists(VGTS_VAULT_DIR)) {
+        mkdir(VGTS_VAULT_DIR, 0755, true);
+        file_put_contents(VGTS_VAULT_DIR . '/index.php', '<?php // SILENCE IS GOLDEN ?>');
+        file_put_contents(VGTS_VAULT_DIR . '/.htaccess', "Order Deny,Allow\nDeny from all");
     }
 
     $charset_collate = $wpdb->get_charset_collate();
     
-    $sql_bans = "CREATE TABLE " . $wpdb->prefix . VIS_TABLE_BANS . " (
+    $sql_bans = "CREATE TABLE " . $wpdb->prefix . VGTS_TABLE_BANS . " (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         ip varchar(45) NOT NULL,
         reason text NOT NULL,
@@ -83,7 +84,7 @@ register_activation_hook(__FILE__, function() {
         KEY banned_at (banned_at)
     ) $charset_collate;";
 
-    $sql_logs = "CREATE TABLE " . $wpdb->prefix . VIS_TABLE_LOGS . " (
+    $sql_logs = "CREATE TABLE " . $wpdb->prefix . VGTS_TABLE_LOGS . " (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         timestamp datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
         module varchar(32) NOT NULL,
@@ -102,7 +103,7 @@ register_activation_hook(__FILE__, function() {
 });
 
 register_deactivation_hook(__FILE__, function() {
-    wp_clear_scheduled_hook('vis_hourly_scan_event');
+    wp_clear_scheduled_hook('vgts_hourly_scan_event');
     flush_rewrite_rules();
 });
 
@@ -112,33 +113,33 @@ add_action('plugins_loaded', function() {
     // ==========================================
     // TIER 1: PERIMETER & PAYLOAD DEFENSE (CRITICAL)
     // ==========================================
-    new VIS_Cerberus();
-    $options = get_option('vis_config', []);
-    new VIS_Aegis($options); 
+    new VGTS_Cerberus();
+    $options = get_option('vgts_config', []);
+    new VGTS_Aegis($options); 
 
     // ==========================================
     // TIER 2: COMPATIBILITY LAYER
     // ==========================================
-    new VIS_Compatibility_Manager();
+    new VGTS_Compatibility_Manager();
 
     // ==========================================
     // TIER 3: SECONDARY SECURITY MODULES & ENGINE FUSION
     // ==========================================
-    new VIS_Titan($options);
-    new VIS_Hades($options);
-    new VIS_Styx_Lite($options);
-    new VIS_Airlock();
-    new VIS_Ghost_Trap();
-    new VIS_Chronos();
+    new VGTS_Titan($options);
+    new VGTS_Hades($options);
+    new VGTS_Styx_Lite($options);
+    new VGTS_Airlock();
+    new VGTS_Ghost_Trap();
+    new VGTS_Chronos();
     
     // V2 ARCHITECTURE: ANTIBOT PROOF-OF-WORK ENGINE
-    new VIS_Antibot($options);
+    new VGTS_Antibot($options);
 
     // ==========================================
     // TIER 4: ADMIN DASHBOARD
     // ==========================================
     if (is_admin()) {
-        new VIS_Dashboard_Core();
+        new VGTS_Dashboard_Core();
     }
     
 }, -9999);

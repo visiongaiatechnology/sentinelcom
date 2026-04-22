@@ -1,73 +1,129 @@
 <?php
 declare(strict_types=1);
-if (!defined('ABSPATH')) exit;
 
-class VIS_Dashboard_Core {
-    private $page_hook;
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * CORE: DASHBOARD ENGINE
+ * STATUS: DIAMANT VGT SUPREME
+ * Architecture: Clean SoC, Deterministic Asset Routing & Recursive Scan Engine.
+ */
+class VGTS_Dashboard_Core {
+
+    private ?string $page_hook = null;
 
     public function __construct() {
         add_action('admin_menu', [$this, 'menu']);
         add_action('admin_init', [$this, 'save_settings']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
-        add_action('wp_ajax_vis_run_scan', [$this, 'ajax_scan']);
-        add_action('wp_ajax_vis_approve_changes', [$this, 'ajax_approve']);
-        add_action('wp_ajax_vis_dashboard_unban_ip', [self::class, 'handle_unban_ip']);
+        
+        add_action('wp_ajax_vgts_run_scan', [$this, 'ajax_scan']);
+        add_action('wp_ajax_vgts_approve_changes', [$this, 'ajax_approve']);
+        add_action('wp_ajax_vgts_dashboard_unban_ip', [self::class, 'handle_unban_ip']);
     }
 
-    public function menu() {
+    public function menu(): void {
+        if (!class_exists('VGTS_Dashboard_View')) {
+            require_once VGTS_PATH . 'includes/dashboard/class-vis-dashboard-view.php';
+        }
+
         $this->page_hook = add_menu_page(
-            'Sentinel', 'Sentinel', 'manage_options', 'vis-sentinel', 
-            [new VIS_Dashboard_View(), 'render'], VIS_SENTINEL_ICON, 99
+            'Sentinel', 
+            'Sentinel', 
+            'manage_options', 
+            'vgts-sentinel', 
+            [new VGTS_Dashboard_View(), 'render'], 
+            defined('VGTS_SENTINEL_ICON') ? VGTS_SENTINEL_ICON : '', 
+            99
         );
     }
 
     public static function handle_unban_ip(): void {
-        check_ajax_referer('vis_dashboard_nonce', 'nonce'); 
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!wp_verify_nonce($nonce, 'vgts_nonce')) {
+            wp_send_json_error(esc_html__('VGT SECURITY: Invalid security token.', 'vgt-sentinel-ce'));
+        }
         
         if (!current_user_can('manage_options')) {
-            wp_send_json_error('VGT SECURITY ALERT: Unauthorized access.');
+            wp_send_json_error(esc_html__('VGT SECURITY ALERT: Unauthorized access.', 'vgt-sentinel-ce'));
         }
 
-        $ip = sanitize_text_field($_POST['ip'] ?? '');
+        $ip = isset($_POST['ip']) ? sanitize_text_field(wp_unslash($_POST['ip'])) : '';
         if (empty($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
-            wp_send_json_error('VGT KERNEL ERROR: Invalid IP format.');
+            wp_send_json_error(esc_html__('VGT KERNEL ERROR: Invalid IP format.', 'vgt-sentinel-ce'));
         }
 
         global $wpdb;
-        $table_bans = defined('VIS_TABLE_BANS') ? $wpdb->prefix . VIS_TABLE_BANS : $wpdb->prefix . 'vis_bans';
+        $table_name = defined('VGTS_TABLE_BANS') ? VGTS_TABLE_BANS : 'vgts_apex_bans';
+        $table_bans = $wpdb->prefix . $table_name;
         
         $deleted = $wpdb->delete($table_bans, ['ip' => $ip]);
         
         if ($deleted !== false) {
-            wp_send_json_success('IP unbanned.');
+            wp_send_json_success(esc_html__('IP successfully unbanned.', 'vgt-sentinel-ce'));
         } else {
-            wp_send_json_error('VGT DB ERROR: Unban failed.');
+            wp_send_json_error(esc_html__('VGT DB ERROR: Unban operation failed.', 'vgt-sentinel-ce'));
         }
     }
 
-    public function enqueue_assets($hook) {
-        if ($hook !== $this->page_hook) return;
-        wp_enqueue_style('vis-dashboard-css', VIS_URL . 'assets/css/vis-dashboard.css', [], VIS_VERSION);
-        wp_enqueue_script('vis-dashboard-js', VIS_URL . 'assets/js/vis-dashboard.js', ['jquery'], VIS_VERSION, true);
-        wp_localize_script('vis-dashboard-js', 'visConfig', [
-            'nonce' => wp_create_nonce('vis_nonce'),
+    public function enqueue_assets(string $hook): void {
+        if ($hook !== $this->page_hook) {
+            return;
+        }
+
+        // 1. BASE ASSETS
+        wp_enqueue_style('vgts-dashboard-css', VGTS_URL . 'assets/css/vgts-dashboard.css', [], VGTS_VERSION);
+        wp_enqueue_script('vgts-dashboard-js', VGTS_URL . 'assets/js/vgts-dashboard.js', ['jquery'], VGTS_VERSION, true);
+        
+        wp_enqueue_style('vgts-sidebar-css', VGTS_URL . 'assets/css/vgts-sidebar.css', ['vgts-dashboard-css'], VGTS_VERSION);
+        wp_enqueue_script('vgts-sidebar-js', VGTS_URL . 'assets/js/vgts-sidebar.js', ['vgts-dashboard-js'], VGTS_VERSION, true);
+        
+        wp_localize_script('vgts-dashboard-js', 'vgtsConfig', [
+            'nonce'   => wp_create_nonce('vgts_nonce'),
             'ajaxUrl' => admin_url('admin-ajax.php')
         ]);
+
+        // 2. MODULAR TAB ASSETS
+        $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'overview';
+        
+        $css_file = 'assets/css/vgts-' . $active_tab . '.css';
+        $js_file  = 'assets/js/vgts-' . $active_tab . '.js';
+
+        if (file_exists(VGTS_PATH . $css_file)) {
+            wp_enqueue_style('vgts-' . $active_tab . '-css', VGTS_URL . $css_file, ['vgts-dashboard-css', 'vgts-sidebar-css'], VGTS_VERSION);
+        }
+
+        if (file_exists(VGTS_PATH . $js_file)) {
+            wp_enqueue_script('vgts-' . $active_tab . '-js', VGTS_URL . $js_file, ['vgts-dashboard-js', 'vgts-sidebar-js'], VGTS_VERSION, true);
+        }
     }
 
-    public function save_settings() {
-        if (isset($_POST['vis_save_config']) && check_admin_referer('vis_save_config')) {
-            $current = get_option('vis_config', []);
+    public function save_settings(): void {
+        if (isset($_POST['vgts_save_config'])) {
+            $nonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
+            if (!wp_verify_nonce($nonce, 'vgts_save_config')) {
+                return;
+            }
+
+            if (!current_user_can('manage_options')) {
+                return;
+            }
+
+            $current = (array) get_option('vgts_config', []);
+            $raw_new = isset($_POST['vgts_config']) && is_array($_POST['vgts_config']) ? wp_unslash($_POST['vgts_config']) : [];
+            $new     = map_deep($raw_new, 'sanitize_text_field');
             
-            $new     = isset($_POST['vis_config']) && is_array($_POST['vis_config']) ? wp_unslash($_POST['vis_config']) : [];
-            $context = isset($_POST['vis_context']) ? sanitize_key($_POST['vis_context']) : 'all';
+            $context = isset($_POST['vgts_context']) ? sanitize_key(wp_unslash($_POST['vgts_context'])) : 'all';
 
             $scope_map = [
                 'aegis'   => ['aegis_enabled'],
-                'titan'   => ['titan_enabled', 'titan_block_xmlrpc', 'titan_block_rest', 'titan_disable_feeds', 'titan_cleanup_emojis', 'titan_cleanup_embeds'],
+                'titan'   => ['titan_enabled', 'titan_disallow_file_edit', 'titan_block_xmlrpc', 'titan_block_rest', 'titan_disable_feeds', 'titan_cleanup_emojis', 'titan_cleanup_embeds'],
                 'hades'   => ['hades_enabled'],
                 'styx'    => ['styx_kill_telemetry'],
-                'airlock' => ['airlock_enabled']
+                'airlock' => ['airlock_enabled'],
+                'antibot' => ['antibot_enabled', 'antibot_comments', 'antibot_cf7', 'antibot_woo', 'antibot_wpforms', 'antibot_gform']
             ];
 
             $checkboxes_to_check = $scope_map[$context] ?? [];
@@ -76,45 +132,53 @@ class VIS_Dashboard_Core {
             }
 
             foreach ($checkboxes_to_check as $cb) {
-                if (!isset($new[$cb])) {
-                    $new[$cb] = 0;
-                }
+                $new[$cb] = isset($new[$cb]) ? 1 : 0;
             }
 
-            if (isset($new['aegis_mode'])) {
-                $new['aegis_mode'] = sanitize_key($new['aegis_mode']); 
-            }
-            if (isset($new['aegis_whitelist_ips'])) {
-                $new['aegis_whitelist_ips'] = sanitize_textarea_field($new['aegis_whitelist_ips']);
-            }
-            if (isset($new['aegis_whitelist_uas'])) {
-                $new['aegis_whitelist_uas'] = sanitize_textarea_field($new['aegis_whitelist_uas']);
-            }
+            if (isset($new['aegis_mode'])) $new['aegis_mode'] = sanitize_key($new['aegis_mode']); 
+            if (isset($new['aegis_whitelist_ips'])) $new['aegis_whitelist_ips'] = sanitize_textarea_field($new['aegis_whitelist_ips']);
+            if (isset($new['aegis_whitelist_uas'])) $new['aegis_whitelist_uas'] = sanitize_textarea_field($new['aegis_whitelist_uas']);
 
-            $final_data = array_merge($current, $new);
-            update_option('vis_config', $final_data);
+            update_option('vgts_config', array_merge($current, $new));
             
-            wp_redirect(add_query_arg('settings-updated', 'true', $_SERVER['REQUEST_URI']));
+            $request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : admin_url('admin.php?page=vgts-sentinel');
+            wp_redirect(add_query_arg('settings-updated', 'true', $request_uri));
             exit;
         }
     }
 
-    public function ajax_scan() {
-        if (!check_ajax_referer('vis_nonce', 'nonce', false) || !current_user_can('manage_options')) wp_send_json_error();
-        $offset = isset($_POST['offset']) ? intval($_POST['offset']) : 0;
-        $state  = isset($_POST['current_state']) ? (array)$_POST['current_state'] : [];
-        if (!class_exists('VIS_Scanner_Engine')) require_once VIS_PATH . 'includes/scanner/class-vis-scanner-engine.php';
-        $scanner = new VIS_Scanner_Engine();
-        $result  = $scanner->perform_scan_batch($offset, $state);
-        wp_send_json_success($result);
+    public function ajax_scan(): void {
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!wp_verify_nonce($nonce, 'vgts_nonce') || !current_user_can('manage_options')) {
+            wp_send_json_error(esc_html__('Unauthorized.', 'vgt-sentinel-ce'));
+        }
+
+        $offset = isset($_POST['offset']) ? (int)$_POST['offset'] : 0;
+        
+        $raw_state = isset($_POST['current_state']) ? wp_unslash($_POST['current_state']) : '{}';
+        $decoded_state = json_decode($raw_state, true);
+        if (!is_array($decoded_state)) $decoded_state = [];
+        $state = map_deep($decoded_state, 'sanitize_text_field');
+        
+        if (!class_exists('VGTS_Scanner_Engine')) require_once VGTS_PATH . 'includes/scanner/class-vis-scanner-engine.php';
+        
+        $scanner = new VGTS_Scanner_Engine();
+        wp_send_json_success($scanner->perform_scan_batch($offset, $state));
     }
 
-    public function ajax_approve() {
-        if (!check_ajax_referer('vis_nonce', 'nonce', false) || !current_user_can('manage_options')) wp_send_json_error();
-        if (!class_exists('VIS_Scanner_Engine')) require_once VIS_PATH . 'includes/scanner/class-vis-scanner-engine.php';
-        $scanner = new VIS_Scanner_Engine();
-        $success = $scanner->regenerate_baseline();
-        if ($success) wp_send_json_success(['message' => 'System Baseline re-indexed.']);
-        else wp_send_json_error(['message' => 'Re-Index failed.']);
+    public function ajax_approve(): void {
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!wp_verify_nonce($nonce, 'vgts_nonce') || !current_user_can('manage_options')) {
+            wp_send_json_error(esc_html__('Unauthorized.', 'vgt-sentinel-ce'));
+        }
+
+        if (!class_exists('VGTS_Scanner_Engine')) require_once VGTS_PATH . 'includes/scanner/class-vis-scanner-engine.php';
+
+        $scanner = new VGTS_Scanner_Engine();
+        if ($scanner->regenerate_baseline()) {
+            wp_send_json_success(['message' => esc_html__('System Baseline re-indexed.', 'vgt-sentinel-ce')]);
+        } else {
+            wp_send_json_error(['message' => esc_html__('Re-Index failed.', 'vgt-sentinel-ce')]);
+        }
     }
 }

@@ -1,69 +1,98 @@
 <?php 
 declare(strict_types=1);
 
-if (!defined('ABSPATH')) exit; 
+if (!defined('ABSPATH')) {
+    exit; 
+}
 
-$opt = get_option('vis_config', []);
+/**
+ * VIEW: AEGIS FIREWALL SETTINGS
+ * STATUS: DIAMANT VGT SUPREME
+ * FIX: DOM Namespace Sync (vgts-slider, vgts-input-whitelist, vgts-pattern-grid)
+ */
+
+// [WP.ORG COMPLIANCE]: Sync with rekalibrated prefix
+$opt = (array) get_option('vgts_config', []);
 ?>
 
-<div class="vis-card">
-    <h3 style="color:var(--vis-accent);">AEGIS FIREWALL MATRIX</h3>
-    
-    <!-- TOGGLE ROW -->
-    <div class="vis-switch-row">
-        <div class="vis-label-group">
-            <strong>ENABLE FIREWALL ENGINE</strong>
-            <p>Deep Packet Inspection for SQLi, XSS, RCE, and LFI vectors.</p>
+<div class="vgts-card vgts-card-aegis">
+    <h3 style="color:var(--vgts-accent); display: flex; align-items: center; justify-content: space-between;">
+        <span><?php esc_html_e('AEGIS FIREWALL MATRIX', 'vgt-sentinel-ce'); ?></span>
+        <div class="vgts-matrix-status">
+            <div class="vgts-pulse-dot"></div>
+            <?php esc_html_e('SYSTEM ACTIVE', 'vgt-sentinel-ce'); ?>
         </div>
-        <label class="vis-switch">
-            <input type="checkbox" name="vis_config[aegis_enabled]" value="1" <?php checked(!empty($opt['aegis_enabled'])); ?>>
-            <span class="slider"></span>
+    </h3>
+    
+    <div class="vgts-switch-row">
+        <div class="vgts-label-group">
+            <strong><?php esc_html_e('ENABLE FIREWALL ENGINE', 'vgt-sentinel-ce'); ?></strong>
+            <p><?php esc_html_e('Deep Packet Inspection for SQLi, XSS, RCE, and LFI vectors.', 'vgt-sentinel-ce'); ?></p>
+        </div>
+        <label class="vgts-switch">
+            <input type="checkbox" name="vgts_config[aegis_enabled]" value="1" <?php checked(!empty($opt['aegis_enabled'])); ?>>
+            <span class="vgts-slider"></span>
         </label>
     </div>
 
-    <!-- SELECT ROW -->
-    <div class="vis-switch-row">
-        <div class="vis-label-group">
-            <strong>PROTECTION PROTOCOL</strong>
-            <p>Define how Aegis reacts to positive threat signatures.</p>
+    <div class="vgts-switch-row">
+        <div class="vgts-label-group">
+            <strong><?php esc_html_e('PROTECTION PROTOCOL', 'vgt-sentinel-ce'); ?></strong>
+            <p><?php esc_html_e('Define how Aegis reacts to positive threat signatures.', 'vgt-sentinel-ce'); ?></p>
         </div>
         <div>
-            <select name="vis_config[aegis_mode]" style="background: #0f172a; color: #fff; border: 1px solid #334155; padding: 6px 12px; border-radius: 4px; font-size: 13px; outline: none;">
-                <option value="strict" <?php selected($opt['aegis_mode'] ?? '', 'strict'); ?>>STRICT (Instant Ban)</option>
-                <option value="learning" <?php selected($opt['aegis_mode'] ?? '', 'learning'); ?>>LEARNING (Log & Observe)</option>
+            <select name="vgts_config[aegis_mode]" class="vgts-input-select">
+                <option value="strict" <?php selected($opt['aegis_mode'] ?? '', 'strict'); ?>>
+                    <?php esc_html_e('STRICT (Instant Ban)', 'vgt-sentinel-ce'); ?>
+                </option>
+                <option value="learning" <?php selected($opt['aegis_mode'] ?? '', 'learning'); ?>>
+                    <?php esc_html_e('LEARNING (Log & Observe)', 'vgt-sentinel-ce'); ?>
+                </option>
             </select>
         </div>
     </div>
 </div>
 
-<!-- ZERO-TRUST WHITELIST PANEL -->
-<div class="vis-card" style="border-color:#00ffaa; background: linear-gradient(145deg, rgba(0,255,170,0.05), transparent);">
-    <h3 style="color:#00ffaa; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;">
-        <span class="dashicons dashicons-shield"></span> ZERO-TRUST WHITELIST (Creator's Immunity)
+<div class="vgts-card vgts-whitelist-container">
+    <h3 class="vgts-card-title-icon" style="color: #10b981; border-bottom: 1px solid rgba(16, 185, 129, 0.2); padding-bottom: 15px; margin-bottom: 20px;">
+        <span class="dashicons dashicons-shield"></span> 
+        <?php esc_html_e('ZERO-TRUST WHITELIST', 'vgt-sentinel-ce'); ?>
     </h3>
-    <p style="color:#94a3b8; font-size:13px; margin-top: 0; margin-bottom:20px;">
-        Bypasses are system failures. Configure explicit IPs and User-Agents here to grant immunity from AEGIS and Cerberus. Local server loopbacks (127.0.0.1) and WP Cron are immune by default.
+    <p class="vgts-card-description" style="color: var(--vgts-text-secondary); font-size: 13px; margin-bottom: 25px;">
+        <?php esc_html_e("Bypasses are system failures. Configure explicit IPs and User-Agents here to grant immunity from AEGIS and Cerberus. Local server loopbacks and WP Cron are immune by default.", 'vgt-sentinel-ce'); ?>
     </p>
 
     <div style="margin-bottom: 20px;">
-        <label style="display:block; font-weight:600; margin-bottom:8px; color:#cbd5e1; font-size: 13px; letter-spacing: 0.5px;">IMMUNE IP ADDRESSES</label>
-        <textarea name="vis_config[aegis_whitelist_ips]" rows="4" placeholder="192.168.1.100&#10;203.0.113.5" style="width:100%; background:#020617; border:1px solid #334155; color:#00ffaa; padding:12px; font-family:'JetBrains Mono', monospace; border-radius: 6px; resize: vertical; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); outline: none; transition: border-color 0.3s;"><?php echo esc_textarea($opt['aegis_whitelist_ips'] ?? ''); ?></textarea>
-        <span style="font-size:12px; color:#64748b; margin-top: 5px; display: inline-block; font-family: monospace;">One IP per line. Exact match.</span>
+        <label style="display: block; font-size: 12px; font-weight: 700; color: #10b981; margin-bottom: 8px; letter-spacing: 0.5px;"><?php esc_html_e('IMMUNE IP ADDRESSES', 'vgt-sentinel-ce'); ?></label>
+        <textarea name="vgts_config[aegis_whitelist_ips]" rows="4" 
+                  placeholder="192.168.1.100&#10;203.0.113.5" 
+                  style="width: 100%; padding: 15px; border-radius: 8px; resize: vertical;"
+                  class="vgts-input-whitelist"><?php echo esc_textarea($opt['aegis_whitelist_ips'] ?? ''); ?></textarea>
+        <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;"><?php esc_html_e('One IP per line. Exact match.', 'vgt-sentinel-ce'); ?></span>
     </div>
 
     <div>
-        <label style="display:block; font-weight:600; margin-bottom:8px; color:#cbd5e1; font-size: 13px; letter-spacing: 0.5px;">IMMUNE USER-AGENTS (PARTIAL MATCH)</label>
-        <textarea name="vis_config[aegis_whitelist_uas]" rows="4" placeholder="MyCustomAdminApp/1.0&#10;SpecificBot" style="width:100%; background:#020617; border:1px solid #334155; color:#00ffaa; padding:12px; font-family:'JetBrains Mono', monospace; border-radius: 6px; resize: vertical; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); outline: none; transition: border-color 0.3s;"><?php echo esc_textarea($opt['aegis_whitelist_uas'] ?? ''); ?></textarea>
-        <span style="font-size:12px; color:#64748b; margin-top: 5px; display: inline-block; font-family: monospace;">One phrase per line. If the User-Agent contains this phrase, it bypasses the WAF.</span>
+        <label style="display: block; font-size: 12px; font-weight: 700; color: #10b981; margin-bottom: 8px; letter-spacing: 0.5px;"><?php esc_html_e('IMMUNE USER-AGENTS (PARTIAL MATCH)', 'vgt-sentinel-ce'); ?></label>
+        <textarea name="vgts_config[aegis_whitelist_uas]" rows="4" 
+                  placeholder="MyCustomAdminApp/1.0&#10;SpecificBot" 
+                  style="width: 100%; padding: 15px; border-radius: 8px; resize: vertical;"
+                  class="vgts-input-whitelist"><?php echo esc_textarea($opt['aegis_whitelist_uas'] ?? ''); ?></textarea>
+        <span style="font-size: 11px; color: #64748b; margin-top: 6px; display: block;"><?php esc_html_e('One phrase per line. If the User-Agent contains this phrase, it bypasses the WAF.', 'vgt-sentinel-ce'); ?></span>
     </div>
 </div>
 
-<div class="vis-card" style="border-color:var(--vis-accent); background: linear-gradient(145deg, rgba(6,182,212,0.05), transparent);">
-    <h3 style="margin-bottom: 15px;"><span class="dashicons dashicons-info"></span> ACTIVE PATTERNS</h3>
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-top:15px;">
-        <div class="vis-badge" style="text-align:center; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); padding: 8px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; font-size: 12px;">SQL INJECTION</div>
-        <div class="vis-badge" style="text-align:center; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); padding: 8px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; font-size: 12px;">CROSS-SITE SCRIPTING</div>
-        <div class="vis-badge" style="text-align:center; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); padding: 8px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; font-size: 12px;">REMOTE CODE EXECUTION</div>
-        <div class="vis-badge" style="text-align:center; background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); padding: 8px; border-radius: 4px; font-weight: 600; letter-spacing: 0.5px; font-size: 12px;">BAD USER AGENTS</div>
+<div class="vgts-card">
+    <h3 class="vgts-card-title-icon" style="color: var(--vgts-accent); border-bottom: 1px solid var(--vgts-border); padding-bottom: 15px; margin-bottom: 10px;">
+        <span class="dashicons dashicons-info"></span> 
+        <?php esc_html_e('ACTIVE PATTERNS', 'vgt-sentinel-ce'); ?>
+    </h3>
+    
+    <div class="vgts-pattern-grid">
+        <div class="vgts-pattern-badge"><?php esc_html_e('SQL INJECTION', 'vgt-sentinel-ce'); ?></div>
+        <div class="vgts-pattern-badge"><?php esc_html_e('CROSS-SITE SCRIPTING', 'vgt-sentinel-ce'); ?></div>
+        <div class="vgts-pattern-badge"><?php esc_html_e('REMOTE CODE EXECUTION', 'vgt-sentinel-ce'); ?></div>
+        <div class="vgts-pattern-badge"><?php esc_html_e('BAD USER AGENTS', 'vgt-sentinel-ce'); ?></div>
+        <div class="vgts-pattern-badge"><?php esc_html_e('LOCAL FILE INCLUSION', 'vgt-sentinel-ce'); ?></div>
+        <div class="vgts-pattern-badge"><?php esc_html_e('GQL RECONNAISSANCE', 'vgt-sentinel-ce'); ?></div>
     </div>
 </div>

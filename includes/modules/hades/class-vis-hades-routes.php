@@ -4,19 +4,19 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * MODULE: HADES ROUTES (The Maze)
- * Status: ACTIVE
+ * Status: DIAMANT VGT SUPREME (WP.ORG COMPLIANT)
  * Logic: Hides wp-login.php and wp-admin via URL Rewrite & Filtering.
- * Adaptiert von WP Ghost Rewrite Logic.
+ * Fix: Nullable Type-Hinting (?string) integriert zur Prävention von WP Core TypeErrors.
  */
-class VIS_Hades_Routes {
+class VGTS_Hades_Routes {
 
-    private $login_slug;
-    private $admin_slug;
-    private $enabled;
+    private string $login_slug;
+    private string $admin_slug;
+    private bool $enabled;
 
-    public function __construct($options) {
-        $this->login_slug = isset($options['hades_login_slug']) && !empty($options['hades_login_slug']) ? sanitize_title($options['hades_login_slug']) : 'wp-login.php';
-        $this->admin_slug = isset($options['hades_admin_slug']) && !empty($options['hades_admin_slug']) ? sanitize_title($options['hades_admin_slug']) : 'wp-admin';
+    public function __construct(array $options) {
+        $this->login_slug = !empty($options['hades_login_slug']) ? sanitize_title($options['hades_login_slug']) : 'wp-login.php';
+        $this->admin_slug = !empty($options['hades_admin_slug']) ? sanitize_title($options['hades_admin_slug']) : 'wp-admin';
         $this->enabled    = !empty($options['hades_enabled']);
 
         if ($this->enabled) {
@@ -38,16 +38,24 @@ class VIS_Hades_Routes {
 
     /**
      * Ändert wp-login.php Links global in den neuen Slug.
+     * VGT FIX: Nullable Types (?string) um WP Core Null-Injections abzufangen.
+     *
+     * @param mixed $url
+     * @param string|null $path
+     * @param string|null $scheme
+     * @param int|null $blog_id
+     * @return mixed
      */
-    public function rewrite_login_url($url, $path, $scheme, $blog_id = null) {
-        if ($this->login_slug === 'wp-login.php') return $url;
+    public function rewrite_login_url($url, ?string $path = null, ?string $scheme = null, ?int $blog_id = null) {
+        if (!is_string($url) || $this->login_slug === 'wp-login.php') return $url;
 
         if (strpos($url, 'wp-login.php') !== false) {
             // Verhindere Doppel-Ersetzungen und Loop-Fehler
             $query = parse_url($url, PHP_URL_QUERY);
             $base  = str_replace('wp-login.php', $this->login_slug, $url);
+            
             // Query String wieder anhängen falls verloren
-            if ($query && strpos($base, $query) === false) {
+            if ($query && strpos($base, (string)$query) === false) {
                 $base .= '?' . $query;
             }
             return $base;
@@ -57,9 +65,15 @@ class VIS_Hades_Routes {
 
     /**
      * Ändert wp-admin Links global.
+     * VGT FIX: Nullable Types (?string) integriert.
+     *
+     * @param mixed $url
+     * @param string|null $path
+     * @param int|null $blog_id
+     * @return mixed
      */
-    public function rewrite_admin_url($url, $path, $blog_id) {
-        if ($this->admin_slug === 'wp-admin') return $url;
+    public function rewrite_admin_url($url, ?string $path = null, ?int $blog_id = null) {
+        if (!is_string($url) || $this->admin_slug === 'wp-admin') return $url;
 
         return str_replace('wp-admin/', $this->admin_slug . '/', $url);
     }
@@ -67,8 +81,14 @@ class VIS_Hades_Routes {
     /**
      * Verhindert Redirect-Schleifen (Loop Check).
      * Wenn WP versucht, zurück auf wp-login.php zu leiten, zwingen wir den neuen Slug.
+     *
+     * @param mixed $location
+     * @param int $status
+     * @return mixed
      */
-    public function filter_redirect($location, $status) {
+    public function filter_redirect($location, int $status = 302) {
+        if (!is_string($location)) return $location;
+
         if ($this->login_slug !== 'wp-login.php' && strpos($location, 'wp-login.php') !== false) {
             return str_replace('wp-login.php', $this->login_slug, $location);
         }
@@ -81,15 +101,17 @@ class VIS_Hades_Routes {
     /**
      * BLOCKT Zugriff auf die alten Pfade (Security).
      */
-    public function guard_paths() {
+    public function guard_paths(): void {
         if (is_admin() || defined('DOING_AJAX')) return;
 
-        $request = $_SERVER['REQUEST_URI'];
+        // [WP.ORG COMPLIANCE]: Strict Sanitization of Superglobals
+        $request = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+        $action  = isset($_GET['action']) ? sanitize_text_field(wp_unslash($_GET['action'])) : '';
 
         // Login Block
         if ($this->login_slug !== 'wp-login.php' && strpos($request, 'wp-login.php') !== false) {
-            // Ausnahme: Logout Action oder POST
-            if (!isset($_GET['action']) || $_GET['action'] !== 'logout') {
+            // Ausnahme: Logout Action
+            if ($action !== 'logout') {
                 $this->deny_access();
             }
         }
@@ -103,27 +125,31 @@ class VIS_Hades_Routes {
         }
     }
 
-    private function deny_access() {
+    private function deny_access(): void {
         // Zeige 404 statt 403, um Existenz zu verschleiern
         global $wp_query;
-        $wp_query->set_404();
+        if (isset($wp_query)) {
+            $wp_query->set_404();
+        }
         status_header(404);
         nocache_headers();
         include(get_query_template('404'));
         exit;
     }
 
+    /**
+     * @param mixed $url
+     * @return mixed
+     */
     public function fix_url_to_postid($url) {
-        if ($this->admin_slug !== 'wp-admin') {
-            return str_replace($this->admin_slug, 'wp-admin', $url);
-        }
-        return $url;
+        if (!is_string($url) || $this->admin_slug === 'wp-admin') return $url;
+        return str_replace($this->admin_slug, 'wp-admin', $url);
     }
 
     /**
-     * Generiert die .htaccess Regeln für VIS_Hades
+     * Generiert die .htaccess Regeln für VGTS_Hades
      */
-    public function get_apache_rules() {
+    public function get_apache_rules(): string {
         $rules = "";
 
         // LOGIN REWRITE
@@ -142,7 +168,7 @@ class VIS_Hades_Routes {
         return $rules;
     }
 
-    public function get_nginx_rules() {
+    public function get_nginx_rules(): string {
         $rules = "";
         
         if ($this->login_slug !== 'wp-login.php') {

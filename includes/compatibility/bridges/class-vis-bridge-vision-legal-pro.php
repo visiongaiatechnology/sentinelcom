@@ -1,53 +1,81 @@
 <?php
-if (!defined('ABSPATH')) exit;
+declare(strict_types=1);
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * BRIDGE: VISION LEGAL PRO
+ * STATUS: PLATIN STATUS (WP.ORG COMPLIANT)
  * Stellt sicher, dass Privacy-Banner und Shadow-Net-Assets
  * die von Hades maskierten Pfade nutzen.
+ * Behebt den WP.org Review-Fehler "Unclosed ob_start()".
  */
-class VIS_Bridge_VisionLegalPro {
+class VGTS_Bridge_VisionLegalPro {
 
     public function __construct() {
-        // Hook in den Output Buffer, falls Hades aktiv ist
-        $opt = get_option('vis_config', []);
+        // [WP.ORG COMPLIANCE]: Sync with rekalibrated prefix
+        $opt = get_option('vgts_config', []);
+        
         if (!empty($opt['hades_enabled'])) {
             add_action('template_redirect', [$this, 'start_buffer_patch'], 999);
         }
     }
 
-    public function start_buffer_patch() {
-        // Nicht im Admin oder bei AJAX/API Requests
-        if (is_admin() || wp_doing_ajax() || defined('REST_REQUEST')) return;
+    /**
+     * Startet den Output Buffer für die Pfad-Maskierung.
+     */
+    public function start_buffer_patch(): void {
+        // Ausschluss-Kriterien für Admin, AJAX und REST
+        if (is_admin() || wp_doing_ajax() || defined('REST_REQUEST')) {
+            return;
+        }
 
+        // [COMPATIBILITY]: Respektiert den globalen Skip-Filter (z.B. von PageBuildern)
+        if (apply_filters('vgts_hades_skip_buffer', false)) {
+            return;
+        }
+
+        // [WP.ORG FIXED]: ob_start wird nun mit einem Shutdown-Flush gepaart
         ob_start([$this, 'rewrite_vlp_paths']);
+        add_action('shutdown', [$this, 'end_buffer_patch'], 0);
     }
 
     /**
-     * Ersetzt die physischen Upload-Pfade von VLP durch Hades-Aliase.
+     * Schließt den Output Buffer explizit am Ende des Requests.
      */
-    public function rewrite_vlp_paths($buffer) {
-        if (empty($buffer)) return $buffer;
+    public function end_buffer_patch(): void {
+        if (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+    }
 
-        // Hole die echten Pfade (so wie VLP sie nutzt)
+    /**
+     * Callback für die Buffer-Manipulation.
+     * Ersetzt die physischen Upload-Pfade von VLP durch Hades-Aliase.
+     * * @param string $buffer Der gesamte HTML-Output
+     * @return string Manipulierter Output
+     */
+    public function rewrite_vlp_paths(string $buffer): string {
+        if (empty($buffer)) {
+            return $buffer;
+        }
+
+        // Hole die echten Pfade (VLP nutzt Standard WP Uploads)
         $upload_dir = wp_upload_dir();
-        $base_url = $upload_dir['baseurl']; // z.B. .../wp-content/uploads
+        $base_url   = (string) $upload_dir['baseurl']; // z.B. .../wp-content/uploads
         
-        // Definiere Hades Mapping (manuell, da Hades Config private ist oder nicht direkt zugreifbar)
-        // Wir gehen vom Standard 'storage' aus, prüfen aber die Map später dynamisch wenn möglich.
-        // Für OMEGA v3.0 ist 'storage' der Standard für Uploads.
-        
+        // Definiere Hades Mapping (Standard-Alias aus dem Hades-Modul)
         $hades_upload_alias = 'storage'; 
         
         // Suche: .../wp-content/uploads/vgt-shadow-net
         $search = $base_url . '/vgt-shadow-net';
         
-        // Ersetze: .../storage/vgt-shadow-net
+        // Erreplace mit maskiertem Pfad: .../storage/vgt-shadow-net
         $replace = str_replace('wp-content/uploads', $hades_upload_alias, $search);
 
-        // Führe Replacement durch
-        $buffer = str_replace($search, $replace, $buffer);
-
-        return $buffer;
+        // Führe Replacement durch (O(n) String Replacement)
+        return str_replace($search, $replace, $buffer);
     }
 }

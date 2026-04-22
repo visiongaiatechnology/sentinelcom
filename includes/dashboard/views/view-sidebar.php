@@ -3,99 +3,54 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit; 
 /**
  * SIDEBAR VIEW: COMMUNITY CORE EDITION
- * Status: PLATIN STATUS
- * Logic: Dynamische Iteration über Controller-Tabs. Minimale DOM-Last.
- * Fix: Adaptive Flexbox Architecture + Custom UI Scrollbar
+ * Status: DIAMANT VGT SUPREME
+ * Logic: Dynamische Iteration über Controller-Tabs via State Injection.
+ * Fix: DOM Class Namespace Sync (vis- -> vgts-). CSS Redundanz eliminiert.
  */
 ?>
 
-<!-- VGT ADAPTIVE SIDEBAR CSS (ZERO-DEPENDENCY) -->
-<style>
-    /* Erzwingt das Flex-Grid auf der Sidebar, um den verbleibenden Platz zu berechnen */
-    .vis-sidebar {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100vh; /* Adaptiv zur Viewport-Höhe */
-        max-height: 100vh;
-        overflow: hidden; /* Verhindert globalen Sidebar-Overflow */
-    }
-
-    /* Schützt Header und Footer vor dem Zusammendrücken */
-    .vis-brand { flex-shrink: 0; }
-    .vis-sidebar-footer { flex-shrink: 0; }
-
-    /* Nav-Bereich dynamisch expandieren lassen und Scrolling isolieren */
-    .vis-nav {
-        flex-grow: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        /* Firefox Scrollbar UI */
-        scrollbar-width: thin;
-        scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
-        padding-right: 2px; /* Verhindert, dass der Text am Scrollbar klebt */
-    }
-
-    /* Webkit (Chrome, Safari, Edge) Custom Scrollbar UI - PLATIN STANDARD */
-    .vis-nav::-webkit-scrollbar {
-        width: 4px;
-    }
-    .vis-nav::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .vis-nav::-webkit-scrollbar-thumb {
-        background: rgba(6, 182, 212, 0.2);
-        border-radius: 10px;
-        transition: background 0.3s ease;
-    }
-    .vis-nav::-webkit-scrollbar-thumb:hover {
-        background: rgba(6, 182, 212, 0.6);
-    }
-</style>
-
-<aside class="vis-sidebar">
-    <!-- BRANDING SECTION -->
-    <div class="vis-brand">
-        <!-- VGT SUPREME: Dynamic Icon Injection -->
-        <img src="<?php echo esc_url(VIS_SENTINEL_ICON); ?>" alt="Sentinel Icon" class="vis-logo-glitch" style="width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));">
+<aside class="vgts-sidebar">
+    <div class="vgts-brand">
+        <img src="<?php echo esc_url(defined('VGTS_SENTINEL_ICON') ? VGTS_SENTINEL_ICON : ''); ?>" alt="Sentinel Icon" class="vgts-logo-glitch" style="width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));">
         
         <div>
             <h2 style="margin:0; font-size:16px; color:#fff; font-weight:700; letter-spacing:0.5px;">
-                VGT<span style="color:var(--vis-accent);">SENTINEL</span>
+                VGT<span style="color:var(--vgts-accent);">SENTINEL</span>
             </h2>
-            <small style="font-size:10px; color:var(--vis-text-secondary); text-transform:uppercase; letter-spacing:1px; font-weight:600;">
+            <small style="font-size:10px; color:var(--vgts-text-secondary); text-transform:uppercase; letter-spacing:1px; font-weight:600;">
                 COMMUNITY EDITION
             </small>
         </div>
     </div>
 
-    <!-- DYNAMISCHE NAVIGATION (SCROLLABLE AREA) -->
-    <nav class="vis-nav">
+    <nav class="vgts-nav">
         <?php 
-        // Wir nutzen die im Controller (class-vis-dashboard-view.php) 
-        // definierte $tabs Matrix für maximale Konsistenz.
-        foreach ($this->tabs as $slug => $data): 
-            $is_active = ($active_tab === $slug);
+        // Dependency Injection Check
+        if (!isset($tabs) || !is_array($tabs)) {
+            $tabs = [];
+        }
+        
+        foreach ($tabs as $slug => $data): 
+            $is_active = (isset($active_tab) && $active_tab === $slug);
             
-            // Heuristik: Oracle & Logs visuell abtrennen (Optional)
+            // Heuristik: Oracle visuell abtrennen
             if ($slug === 'oracle') {
-                echo '<div style="height:1px; background:var(--vis-border); margin:10px 15px; opacity:0.5;"></div>';
+                echo '<div style="height:1px; background:var(--vgts-border); margin:10px 15px; opacity:0.5;"></div>';
             }
         ?>
-            <a href="?page=vis-sentinel&tab=<?php echo esc_attr($slug); ?>" 
-               class="vis-nav-item <?php echo $is_active ? 'active' : ''; ?>">
+            <a href="?page=vgts-sentinel&tab=<?php echo esc_attr($slug); ?>" 
+               class="vgts-nav-item <?php echo $is_active ? 'active' : ''; ?>">
                 <span class="dashicons <?php echo esc_attr($data['icon']); ?>"></span>
-                <span class="vis-nav-label"><?php echo esc_html($data['label']); ?></span>
+                <span class="vgts-nav-label"><?php echo esc_html($data['label']); ?></span>
                 
                 <?php if ($is_active): ?>
-                    <span class="vis-active-indicator"></span>
+                    <span class="vgts-active-indicator"></span>
                 <?php endif; ?>
             </a>
         <?php endforeach; ?>
     </nav>
     
-    <!-- SYSTEM STATUS FOOTER (VGT ZERO-DEPENDENCY UI) -->
-    <!-- FIX: vis-sidebar-footer Klasse hinzugefügt für O(1) Flex-Shrink Protection -->
-    <div class="vis-sidebar-footer" style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); background: #020617; margin-bottom: 10px; border-radius: 0 0 8px 8px;">
+    <div class="vgts-sidebar-footer">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 11px; font-family: monospace;">
             <span style="color: #64748b; font-weight: 700; letter-spacing: 0.5px;">STATUS</span>
             <span style="color: #10b981; font-weight: 800; display: flex; align-items: center; gap: 6px;">
@@ -105,10 +60,9 @@ if (!defined('ABSPATH')) exit;
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-family: monospace;">
             <span style="color: #64748b; font-weight: 700; letter-spacing: 0.5px;">CORE</span>
-            <span style="color: #94a3b8; font-weight: 700;"><?php echo defined('VIS_VERSION') ? esc_html(VIS_VERSION) : '4.7.0'; ?></span>
+            <span style="color: #94a3b8; font-weight: 700;"><?php echo defined('VGTS_VERSION') ? esc_html(VGTS_VERSION) : '1.5.0'; ?></span>
         </div>
         
-        <!-- Subtle Upgrade Hint -->
         <div style="margin-top: 20px; padding: 10px; background: rgba(6, 182, 212, 0.05); border-radius: 4px; border: 1px solid rgba(6, 182, 212, 0.1);">
             <p style="margin: 0; font-size: 9px; color: #06b6d4; text-align: center; font-weight: 800; letter-spacing: 0.5px;">
                 VGT OMEGA PROTOCOL

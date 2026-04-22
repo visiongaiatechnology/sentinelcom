@@ -1,60 +1,77 @@
 <?php
 declare(strict_types=1);
-if (!defined('ABSPATH')) exit;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * MODULE: FILESYSTEM GUARD (Datensicherheit)
+ * STATUS: PLATIN STATUS (WP.ORG COMPLIANT)
  * Scanned Datei-Rechte und vergleicht sie mit Soll-Werten.
  */
-class VIS_Filesystem_Guard {
+class VGTS_Filesystem_Guard {
 
-    private $critical_paths = [
-        ['path' => '/',                     'type' => 'dir',  'rec' => '0755', 'label' => 'Root Directory'],
-        ['path' => 'wp-includes/',          'type' => 'dir',  'rec' => '0755', 'label' => 'WP Core Includes'],
-        ['path' => '.htaccess',             'type' => 'file', 'rec' => '0644', 'label' => 'Server Config (.htaccess)'],
-        ['path' => 'wp-admin/index.php',    'type' => 'file', 'rec' => '0644', 'label' => 'Admin Entry Point'],
-        ['path' => 'wp-admin/js/',          'type' => 'dir',  'rec' => '0755', 'label' => 'Admin Assets'],
-        ['path' => 'wp-content/themes/',    'type' => 'dir',  'rec' => '0755', 'label' => 'Theme Directory'],
-        ['path' => 'wp-content/plugins/',   'type' => 'dir',  'rec' => '0755', 'label' => 'Plugin Directory'],
-        ['path' => 'wp-admin/',             'type' => 'dir',  'rec' => '0755', 'label' => 'WP Admin Area'],
-        ['path' => 'wp-content/',           'type' => 'dir',  'rec' => '0755', 'label' => 'Content Area'],
-        ['path' => 'wp-config.php',         'type' => 'file', 'rec' => '0400', 'label' => 'WP Config (Critical)']
-    ];
+    /**
+     * Gibt die Liste der kritischen Pfade mit übersetzten Labels zurück.
+     * * @return array
+     */
+    private function get_critical_paths(): array {
+        return [
+            ['path' => '/',                     'type' => 'dir',  'rec' => '0755', 'label' => __('Root Directory', 'vgt-sentinel-ce')],
+            ['path' => 'wp-includes/',          'type' => 'dir',  'rec' => '0755', 'label' => __('WP Core Includes', 'vgt-sentinel-ce')],
+            ['path' => '.htaccess',             'type' => 'file', 'rec' => '0644', 'label' => __('Server Config (.htaccess)', 'vgt-sentinel-ce')],
+            ['path' => 'wp-admin/index.php',    'type' => 'file', 'rec' => '0644', 'label' => __('Admin Entry Point', 'vgt-sentinel-ce')],
+            ['path' => 'wp-admin/js/',          'type' => 'dir',  'rec' => '0755', 'label' => __('Admin Assets', 'vgt-sentinel-ce')],
+            ['path' => 'wp-content/themes/',    'type' => 'dir',  'rec' => '0755', 'label' => __('Theme Directory', 'vgt-sentinel-ce')],
+            ['path' => 'wp-content/plugins/',   'type' => 'dir',  'rec' => '0755', 'label' => __('Plugin Directory', 'vgt-sentinel-ce')],
+            ['path' => 'wp-admin/',             'type' => 'dir',  'rec' => '0755', 'label' => __('WP Admin Area', 'vgt-sentinel-ce')],
+            ['path' => 'wp-content/',           'type' => 'dir',  'rec' => '0755', 'label' => __('Content Area', 'vgt-sentinel-ce')],
+            ['path' => 'wp-config.php',         'type' => 'file', 'rec' => '0400', 'label' => __('WP Config (Critical)', 'vgt-sentinel-ce')]
+        ];
+    }
 
-    public function scan_permissions() {
+    /**
+     * Scannt die Berechtigungen der kritischen Systempfade.
+     * * @return array
+     */
+    public function scan_permissions(): array {
         $results = [];
-        $root = ABSPATH;
+        $root    = ABSPATH;
+        $paths   = $this->get_critical_paths();
 
-        foreach ($this->critical_paths as $item) {
+        foreach ($paths as $item) {
             $full_path = $root . $item['path'];
-            $exists = file_exists($full_path);
+            $exists    = file_exists($full_path);
             
+            // Berechtigungen oktal extrahieren (z.B. 0755)
             $perms = $exists ? substr(sprintf('%o', fileperms($full_path)), -4) : 'N/A';
             
-            // Status-Logik
+            // Status-Logik (Standard: Sicher)
             $status = 'secure';
-            $msg = 'Keine Aktion erforderlich';
+            $msg    = __('No action required', 'vgt-sentinel-ce');
 
             if (!$exists) {
                 $status = 'missing';
-                $msg = 'Datei/Ordner nicht gefunden';
+                $msg    = __('File or folder not found', 'vgt-sentinel-ce');
             } elseif ($perms !== $item['rec']) {
-                // Sonderfall wp-config: 0600 oder 0640 oder 0644 (Host abhängig)
-                if ($item['path'] === 'wp-config.php' && in_array($perms, ['0600', '0640', '0644'])) {
+                // Sonderfall wp-config.php: Akzeptiere 0400, 0440, 0600, 0640, 0644 je nach Härtungsgrad
+                if ($item['path'] === 'wp-config.php' && in_array($perms, ['0400', '0440', '0600', '0640', '0644'], true)) {
                     $status = 'secure';
                 } else {
                     $status = 'warning';
-                    $msg = 'Rechte korrigieren auf ' . $item['rec'];
+                    /* translators: %s: Recommended permission string (e.g. 0755) */
+                    $msg = sprintf(__('Correct permissions to %s', 'vgt-sentinel-ce'), $item['rec']);
                 }
             }
 
             $results[] = [
-                'label' => $item['label'],
-                'path'  => $full_path, // Zeigt den echten Server-Pfad
-                'perms' => $perms,
-                'rec'   => $item['rec'],
-                'status'=> $status,
-                'msg'   => $msg
+                'label'  => $item['label'],
+                'path'   => $full_path, 
+                'perms'  => $perms,
+                'rec'    => $item['rec'],
+                'status' => $status,
+                'msg'    => $msg
             ];
         }
 

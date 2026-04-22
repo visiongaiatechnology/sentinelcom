@@ -4,19 +4,23 @@ if (!defined('ABSPATH')) exit;
 
 /**
  * MODULE: HADES (The Unseen) - OMEGA V4.0 (FULL SPECTRUM)
- * Status: ACTIVE / PLATINUM HARDENED
+ * Status: ACTIVE / PLATINUM HARDENED (WP.ORG COMPLIANT STRUCTURE)
  * Logic: Kombiniert Asset-Maskierung (Ghost Protocol) mit Routing-Maskierung (Login/Admin).
  * Fix: Type-Guard in URL-Filtern zur Prävention von PHP 8+ TypeError Fatalities.
  * VGT DIAMANT FIX: PCRE Fail-Safe Mechanismus verhindert .htaccess Wipeouts bei Limit Exhaustion.
+ * * [WP.ORG GUIDELINE 10 NOTICE]: 
+ * Dieses Modul greift tief in Core-Pfade ein (upload_dir, plugins_url). 
+ * Es ist strikt OPT-IN und per Default deaktiviert. Der Anwender muss in der GUI 
+ * explizit zustimmen, die Systempfade zu maskieren.
  */
-class VIS_Hades {
+class VGTS_Hades {
 
-    private $enabled;
-    private $marker = 'VisionGaia Hades';
+    private bool $enabled;
+    private string $marker = 'VGTS Hades';
     private $routes; // Router Instance
     
     // SAFE MAPPING (Assets)
-    private $map = [
+    private array $map = [
         'content/ui'  => 'wp-content/themes',
         'content/lib' => 'wp-content/plugins',
         'storage'     => 'wp-content/uploads',
@@ -24,16 +28,22 @@ class VIS_Hades {
         'core'        => 'wp-includes',
     ];
 
-    public function __construct($options) {
+    public function __construct(array $options) {
         $this->enabled = !empty($options['hades_enabled']);
         
         // INIT ROUTER (Lädt Login/Admin Logic)
-        require_once VIS_PATH . 'includes/modules/hades/class-vis-hades-routes.php';
-        $this->routes = new VIS_Hades_Routes($options);
+        if (!class_exists('VGTS_Hades_Routes')) {
+            require_once VGTS_PATH . 'includes/modules/hades/class-vis-hades-routes.php';
+        }
+        $this->routes = new VGTS_Hades_Routes($options);
 
         // AUTO-SYNC: .htaccess aktualisieren beim Speichern
-        if (is_admin() && isset($_GET['settings-updated']) && $_GET['settings-updated'] == 'true') {
-            $this->update_server_rules();
+        // [WP.ORG COMPLIANCE]: Sanitization of $_GET
+        if (is_admin() && isset($_GET['settings-updated'])) {
+            $updated = sanitize_text_field(wp_unslash($_GET['settings-updated']));
+            if ($updated === 'true') {
+                $this->update_server_rules();
+            }
         }
 
         if ($this->enabled && !is_admin()) {
@@ -44,7 +54,7 @@ class VIS_Hades {
     /**
      * URL REPLACEMENT ENGINE (Assets Only)
      */
-    private function init_url_filters() {
+    private function init_url_filters(): void {
         add_filter('plugins_url', function($url) {
             if (!is_string($url)) return $url;
             return str_replace('wp-content/plugins', 'content/lib', $url);
@@ -98,7 +108,7 @@ class VIS_Hades {
      * SERVER RULES ENGINE (.htaccess Writer)
      * Kombiniert Asset-Regeln und Route-Regeln.
      */
-    public function update_server_rules() {
+    public function update_server_rules(): void {
         if (!$this->is_apache()) return; 
 
         $htaccess_path = ABSPATH . '.htaccess';
@@ -138,7 +148,7 @@ class VIS_Hades {
         file_put_contents($htaccess_path, $new_content);
     }
 
-    private function generate_apache_rules() {
+    private function generate_apache_rules(): string {
         $rules = "<IfModule mod_rewrite.c>\n";
         $rules .= "RewriteEngine On\n";
         
@@ -150,13 +160,14 @@ class VIS_Hades {
         return $rules;
     }
 
-    private function is_apache() {
-        $software = $_SERVER['SERVER_SOFTWARE'] ?? '';
+    private function is_apache(): bool {
+        // [WP.ORG COMPLIANCE]: Strict Sanitization of Server Variables
+        $software = isset($_SERVER['SERVER_SOFTWARE']) ? sanitize_text_field(wp_unslash($_SERVER['SERVER_SOFTWARE'])) : '';
         return (strpos($software, 'Apache') !== false || strpos($software, 'LiteSpeed') !== false);
     }
     
     // Helper für die View um Nginx Rules zu holen
-    public function get_nginx_routing_rules() {
+    public function get_nginx_routing_rules(): string {
         return $this->routes ? $this->routes->get_nginx_rules() : '';
     }
 }
