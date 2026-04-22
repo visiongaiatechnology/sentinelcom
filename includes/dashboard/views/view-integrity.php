@@ -129,3 +129,24 @@ if ($status === 'clean') {
     <span class="dashicons dashicons-update vgts-spin" style="font-size:32px; width:32px; height:32px; margin-bottom:10px; display:inline-block;"></span>
     <div id="vgts-scan-status-text"><?php esc_html_e('INITIALIZING DEEP SCAN...', 'vgt-sentinel-ce'); ?></div>
 </div>
+
+<!-- CUSTOM APPROVE MODAL -->
+<div class="vgts-modal-overlay" id="vgts-approve-modal" style="display: none;">
+    <div class="vgts-modal-box" style="background: #0f172a; border: 1px solid #1e293b; padding: 25px; border-radius: 8px; max-width: 450px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--vgts-warning);">
+            <span class="dashicons dashicons-warning" style="font-size: 24px; width: 24px; height: 24px;"></span>
+            <h3 style="margin: 0; color: #fff; font-size: 16px;"><?php esc_html_e('SECURITY ALERT: BASELINE UPDATE', 'vgt-sentinel-ce'); ?></h3>
+        </div>
+        <p style="color: var(--vgts-text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 25px;">
+            <?php esc_html_e('Are you sure you want to authorize all current changes? This will set a new cryptographic baseline for the entire system.', 'vgt-sentinel-ce'); ?>
+        </p>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="vgts-btn" id="vgts-modal-cancel" style="background: transparent; border: 1px solid var(--vgts-border); color: #fff;">
+                <?php esc_html_e('CANCEL', 'vgt-sentinel-ce'); ?>
+            </button>
+            <button type="button" class="vgts-btn vgts-btn-primary" id="vgts-modal-confirm">
+                <span class="dashicons dashicons-yes"></span> <?php esc_html_e('AUTHORIZE', 'vgt-sentinel-ce'); ?>
+            </button>
+        </div>
+    </div>
+</div>
