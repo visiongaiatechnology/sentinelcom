@@ -7,7 +7,9 @@ if (!defined('ABSPATH')) {
 
 /**
  * VIEW: CERBERUS PERIMETER GUARD
- * STATUS: PLATIN STATUS (MODULAR ASSET ARCHITECTURE)
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: LAYER 1 PERIMETER DEFENSE & IP BAN MANAGEMENT
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
 global $wpdb;
@@ -73,7 +75,7 @@ $bans = $wpdb->get_results($wpdb->prepare(
                         <?php foreach ($bans as $ban): ?>
                             <tr>
                                 <td>
-                                    <span class="vgts-cerberus-ip"><?php echo esc_html($ban->ip); ?></span>
+                                    <span class="vgts-cerberus-ip"><?php echo esc_html((string)$ban->ip); ?></span>
                                 </td>
                                 <td>
                                     <span class="vgts-cerberus-time">
@@ -82,14 +84,14 @@ $bans = $wpdb->get_results($wpdb->prepare(
                                 </td>
                                 <td>
                                     <pre class="vgts-cerberus-payload"><?php 
-                                        echo esc_html($ban->reason); 
+                                        echo esc_html((string)$ban->reason); 
                                         if (!empty($ban->request_uri)) {
-                                            echo "\n\n" . esc_html__('Target:', 'vgt-sentinel-ce') . " " . esc_html($ban->request_uri);
+                                            echo "\n\n" . esc_html__('Target:', 'vgt-sentinel-ce') . " " . esc_html((string)$ban->request_uri);
                                         }
                                     ?></pre>
                                 </td>
                                 <td style="text-align: right;">
-                                    <button type="button" class="vgts-cerberus-btn-unban" data-ip="<?php echo esc_attr($ban->ip); ?>">
+                                    <button type="button" class="vgts-cerberus-btn-unban" data-ip="<?php echo esc_attr((string)$ban->ip); ?>">
                                         <span class="dashicons dashicons-unlock"></span> <?php esc_html_e('Unban', 'vgt-sentinel-ce'); ?>
                                     </button>
                                 </td>
@@ -113,7 +115,6 @@ $bans = $wpdb->get_results($wpdb->prepare(
             ]);
             
             if ($pagination_links) {
-                // Ensure pagination HTML is allowed. WordPress core function outputs safe HTML anchors.
                 echo '<div class="vgts-pagination">' . wp_kses_post($pagination_links) . '</div>';
             }
         endif; 
