@@ -9,9 +9,23 @@
     border-right: 1px solid var(--vgts-border);
     display: flex !important;
     flex-direction: column !important;
-    height: auto;
-    min-height: 800px;
     flex-shrink: 0;
+    
+    /* VGT VIEWPORT FIX: Absolut fixiert, zieht die WP-Adminbar ab */
+    position: fixed; 
+    top: 32px;            /* Unterhalb der WP Admin-Bar */
+    left: 5;              /* Bei WP meistens noch anpassen, wenn das Menü offen ist, aber der Wrapper fängt es ab */
+    height: calc(100vh - 32px); /* 100% Höhe minus WP Admin-Bar */
+    z-index: 50;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Spezifische Anpassung für WP-Mobile (falls die Admin-Bar auf 46px wächst) */
+@media screen and (max-width: 782px) {
+    .vgts-sidebar {
+        top: 46px;
+        height: calc(100vh - 46px);
+    }
 }
 
 .vgts-brand {
