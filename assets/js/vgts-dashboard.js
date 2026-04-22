@@ -73,6 +73,11 @@ jQuery(document).ready(function($) {
         setTimeout(() => { $('.vgts-modal-backdrop').remove(); }, 300);
     }
 
+    // Safe Reload Helper to prevent POST resubmission prompts
+    function safeReload() {
+        window.location.href = window.location.href.split('#')[0];
+    }
+
     // --- RECURSIVE BATCH SCAN ENGINE ---
     function runScanBatch(offset, currentState) {
         const $progress = $('#vgts-scan-progress');
@@ -85,7 +90,7 @@ jQuery(document).ready(function($) {
             action: 'vgts_run_scan', 
             nonce: nonce, 
             offset: offset,
-            current_state: currentState
+            current_state: JSON.stringify(currentState)
         }, function(res) {
             if(!res.success) {
                 showModal('SCAN ABORTED', 'Error: ' + (res.data ? res.data.message : 'Communication breakdown'), 'error');
@@ -108,7 +113,7 @@ jQuery(document).ready(function($) {
         resetScanUI();
 
         if (data.status === 'init') {
-            showModal('SYSTEM INITIALIZED', 'The security baseline has been successfully established.<br>Environment status: <strong>SECURED</strong>.', 'success', () => location.reload());
+            showModal('SYSTEM INITIALIZED', 'The security baseline has been successfully established.<br>Environment status: <strong>SECURED</strong>.', 'success', safeReload);
             return;
         }
 
@@ -122,12 +127,12 @@ jQuery(document).ready(function($) {
                     if (!location.href.includes('tab=integrity')) {
                          window.location.href = '?page=vgts-sentinel&tab=integrity';
                     } else {
-                        location.reload();
+                        safeReload();
                     }
                 });
             }
         } else {
-            showModal('SYSTEM CLEAN', 'Zero unauthorized modifications detected.<br>Environment status: <strong>SECURE</strong>', 'success', () => location.reload());
+            showModal('SYSTEM CLEAN', 'Zero unauthorized modifications detected.<br>Environment status: <strong>SECURE</strong>', 'success', safeReload);
         }
     }
 
@@ -142,7 +147,7 @@ jQuery(document).ready(function($) {
     $(document).on('click', '#vgts-btn-scan', function(e) {
         e.preventDefault();
         $(this).prop('disabled', true).html('<span class="dashicons dashicons-update vgts-spin"></span> INITIALIZING...');
-        runScanBatch(0, []);
+        runScanBatch(0, {});
     });
 
     // Baseline Approval
@@ -158,7 +163,7 @@ jQuery(document).ready(function($) {
                 nonce: nonce
             }, function(res) {
                 if(res.success) {
-                    showModal('BASELINE UPDATED', 'System integrity matrix has been recalibrated.<br>Status: <strong>SECURE</strong>', 'success', () => location.reload());
+                    showModal('BASELINE UPDATED', 'System integrity matrix has been recalibrated.<br>Status: <strong>SECURE</strong>', 'success', safeReload);
                 } else {
                     showModal('UPDATE FAILED', 'Vault write access failed: ' + (res.data ? res.data.message : 'Unknown IO Error'), 'error');
                     $btn.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> APPROVE BASELINE');
