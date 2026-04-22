@@ -1,16 +1,20 @@
 <?php
 declare(strict_types=1);
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
  * VIEW: THREADS (THREAT RADAR & PSYCHOMETRICS)
- * STATUS: PLATIN STATUS (MODULAR ASSET ARCHITECTURE)
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: AGGREGATED THREAT TELEMETRY & LIVE STREAM
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
 global $wpdb;
 
+// 1. Daten-Akquise & Sanitization (Pre-calculated for UI Performance)
 $table_logs = defined('VGTS_TABLE_LOGS') ? $wpdb->prefix . VGTS_TABLE_LOGS : $wpdb->prefix . 'vgts_omega_logs';
 $table_bans = defined('VGTS_TABLE_BANS') ? $wpdb->prefix . VGTS_TABLE_BANS : $wpdb->prefix . 'vgts_apex_bans';
 
@@ -19,12 +23,14 @@ $count_aegis = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_logs} WHERE m
 $count_bans  = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_bans}");
 $count_trap  = (int) $wpdb->get_var("SELECT COUNT(id) FROM {$table_bans} WHERE reason LIKE '%GHOST TRAP%'");
 
+// Gauge Logik: Dynamische Skalierung der Max-Werte
 $max_val = max(100, $count_aegis * 1.2, $count_bans * 1.2, $count_trap * 1.5);
 
 $pct_aegis = min(100, (int) round(($count_aegis / $max_val) * 100));
 $pct_bans  = min(100, (int) round(($count_bans / $max_val) * 100));
 $pct_trap  = min(100, (int) round(($count_trap / $max_val) * 100));
 
+// 2. Data Fusion: Merging Logs and Bans
 $query_logs = "SELECT timestamp, module as event_type, message, ip FROM {$table_logs} ORDER BY id DESC LIMIT 6";
 $query_bans = "SELECT banned_at as timestamp, 'CERBERUS BAN' as event_type, reason as message, ip FROM {$table_bans} ORDER BY id DESC LIMIT 6";
 
@@ -34,7 +40,7 @@ $raw_bans = $wpdb->get_results($query_bans, ARRAY_A);
 
 $threat_stream = array_merge($raw_logs ?: [], $raw_bans ?: []);
 usort($threat_stream, function($a, $b) {
-    return strtotime($b['timestamp']) <=> strtotime($a['timestamp']);
+    return strtotime((string)$b['timestamp']) <=> strtotime((string)$a['timestamp']);
 });
 $threat_stream = array_slice($threat_stream, 0, 6);
 
@@ -53,8 +59,8 @@ $date_format = get_option('date_format') . ' ' . get_option('time_format');
         <div class="vgts-gauge-card vgts-card-aegis">
             <svg viewBox="0 0 36 36" class="vgts-circular-chart">
                 <path class="vgts-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="vgts-circle" data-pct="<?php echo esc_attr($pct_aegis); ?>" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <text x="18" y="21.5" class="vgts-percentage" data-count="<?php echo esc_attr($count_aegis); ?>">0</text>
+                <path class="vgts-circle" data-pct="<?php echo esc_attr((string)$pct_aegis); ?>" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="21.5" class="vgts-percentage" data-count="<?php echo esc_attr((string)$count_aegis); ?>">0</text>
             </svg>
             <div class="vgts-gauge-label"><?php esc_html_e('AEGIS INTERCEPTIONS', 'vgt-sentinel-ce'); ?></div>
             <div class="vgts-gauge-desc"><?php esc_html_e('Neutralized payloads (SQLi, XSS, RCE) at the stream level.', 'vgt-sentinel-ce'); ?></div>
@@ -64,8 +70,8 @@ $date_format = get_option('date_format') . ' ' . get_option('time_format');
         <div class="vgts-gauge-card vgts-card-cerberus">
             <svg viewBox="0 0 36 36" class="vgts-circular-chart">
                 <path class="vgts-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="vgts-circle" data-pct="<?php echo esc_attr($pct_bans); ?>" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <text x="18" y="21.5" class="vgts-percentage" data-count="<?php echo esc_attr($count_bans); ?>">0</text>
+                <path class="vgts-circle" data-pct="<?php echo esc_attr((string)$pct_bans); ?>" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="21.5" class="vgts-percentage" data-count="<?php echo esc_attr((string)$count_bans); ?>">0</text>
             </svg>
             <div class="vgts-gauge-label"><?php esc_html_e('CERBERUS BANS', 'vgt-sentinel-ce'); ?></div>
             <div class="vgts-gauge-desc"><?php esc_html_e('Permanent perimeter blocks (Brute-Force & Attack Vectors).', 'vgt-sentinel-ce'); ?></div>
@@ -75,15 +81,15 @@ $date_format = get_option('date_format') . ' ' . get_option('time_format');
         <div class="vgts-gauge-card vgts-card-trap">
             <svg viewBox="0 0 36 36" class="vgts-circular-chart">
                 <path class="vgts-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="vgts-circle" data-pct="<?php echo esc_attr($pct_trap); ?>" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <text x="18" y="21.5" class="vgts-percentage" data-count="<?php echo esc_attr($count_trap); ?>">0</text>
+                <path class="vgts-circle" data-pct="<?php echo esc_attr((string)$pct_trap); ?>" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="21.5" class="vgts-percentage" data-count="<?php echo esc_attr((string)$count_trap); ?>">0</text>
             </svg>
             <div class="vgts-gauge-label"><?php esc_html_e('GHOST TRAP TRIGGERS', 'vgt-sentinel-ce'); ?></div>
             <div class="vgts-gauge-desc"><?php esc_html_e('Successful tarpit traps against automated botnets.', 'vgt-sentinel-ce'); ?></div>
         </div>
 
         <!-- UPSELL GAUGE (PLATINUM) -->
-        <a href="https://visiongaiatechnology.de/visiongaiadefensehub/" target="_blank" style="text-decoration: none;">
+        <a href="<?php echo esc_url('https://visiongaiatechnology.de/visiongaiadefensehub/'); ?>" target="_blank" style="text-decoration: none;" aria-label="<?php echo esc_attr__('Upgrade to VGT Platinum', 'vgt-sentinel-ce'); ?>">
             <div class="vgts-gauge-card vgts-card-upsell">
                 <span class="dashicons dashicons-lock vgts-upsell-lock"></span>
                 <svg viewBox="0 0 36 36" class="vgts-circular-chart">
@@ -112,26 +118,29 @@ $date_format = get_option('date_format') . ' ' . get_option('time_format');
             </div>
         <?php else: ?>
             <?php foreach ($threat_stream as $event): 
-                $type_class = 'vgts-stream-type-aegis';
-                $type_label = 'AEGIS BLOCK';
+                $event_type = strtoupper((string)$event['event_type']);
+                $event_msg  = (string)$event['message'];
                 
-                if (strpos($event['message'], 'GHOST TRAP') !== false || strpos($event['event_type'], 'TRAP') !== false) {
+                $type_class = 'vgts-stream-type-aegis';
+                $type_label = esc_html__('AEGIS BLOCK', 'vgt-sentinel-ce');
+                
+                if (strpos($event_msg, 'GHOST TRAP') !== false || strpos($event_type, 'TRAP') !== false) {
                     $type_class = 'vgts-stream-type-trap';
-                    $type_label = 'GHOST TRAP';
-                } elseif (strpos($event['event_type'], 'BAN') !== false) {
+                    $type_label = esc_html__('GHOST TRAP', 'vgt-sentinel-ce');
+                } elseif (strpos($event_type, 'BAN') !== false) {
                     $type_class = 'vgts-stream-type-ban';
-                    $type_label = 'HARD BAN';
+                    $type_label = esc_html__('HARD BAN', 'vgt-sentinel-ce');
                 }
                 
-                $timestamp = wp_date($date_format, strtotime($event['timestamp']));
+                $timestamp = wp_date($date_format, strtotime((string)$event['timestamp']));
             ?>
             <div class="vgts-stream-row">
                 <div class="vgts-stream-time"><?php echo esc_html($timestamp); ?></div>
-                <div class="vgts-badge-stream <?php echo esc_attr($type_class); ?>"><?php echo esc_html($type_label); ?></div>
-                <div class="vgts-stream-msg" title="<?php echo esc_attr($event['message']); ?>">
-                    <?php echo esc_html($event['message']); ?>
+                <div class="vgts-badge-stream <?php echo esc_attr($type_class); ?>"><?php echo $type_label; ?></div>
+                <div class="vgts-stream-msg" title="<?php echo esc_attr($event_msg); ?>">
+                    <?php echo esc_html($event_msg); ?>
                 </div>
-                <div class="vgts-stream-ip"><?php echo esc_html($event['ip']); ?></div>
+                <div class="vgts-stream-ip"><?php echo esc_html((string)$event['ip']); ?></div>
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
