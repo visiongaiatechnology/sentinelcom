@@ -7,12 +7,14 @@ if (!defined('ABSPATH')) {
 
 /**
  * VIEW: SYSTEM EVENT LOGS
- * STATUS: PLATIN STATUS (MODULAR ASSET ARCHITECTURE)
+ * STATUS: PLATIN VGT STATUS (Hardened & i18n)
+ * MODULE: SECURITY EVENT TELEMETRY & AUDIT TRAIL
+ * TEXTDOMAIN: vgt-sentinel-ce
  */
 
 global $wpdb;
 
-// [WP.ORG COMPLIANCE]: Nutzung der zentralen Kernel-Konstanten
+// [WP.ORG COMPLIANCE]: Nutzung der zentralen Kernel-Konstanten für deterministisches Tabellen-Routing
 $table_name = defined('VGTS_TABLE_LOGS') ? VGTS_TABLE_LOGS : 'vgts_omega_logs';
 $full_table_path = $wpdb->prefix . $table_name;
 
@@ -46,8 +48,8 @@ $date_format = get_option('date_format') . ' ' . get_option('time_format');
                 </thead>
                 <tbody>
                 <?php foreach ($logs as $log) : 
-                    // Formatierung des Zeitstempels basierend auf WP-Settings
-                    $timestamp = wp_date($date_format, strtotime($log->timestamp));
+                    // Formatierung des Zeitstempels basierend auf WP-Settings und lokaler Zeitzone
+                    $timestamp = wp_date($date_format, strtotime((string)$log->timestamp));
                 ?>
                     <tr>
                         <td>
@@ -55,14 +57,17 @@ $date_format = get_option('date_format') . ' ' . get_option('time_format');
                         </td>
                         <td>
                             <span class="vgts-log-module-badge">
-                                <?php echo esc_html($log->module); ?>
+                                <?php echo esc_html((string)$log->module); ?>
                             </span>
                         </td>
                         <td>
-                            <span class="vgts-log-ip text-mono"><?php echo esc_html($log->ip); ?></span>
+                            <span class="vgts-log-ip text-mono"><?php echo esc_html((string)$log->ip); ?></span>
                         </td>
                         <td class="vgts-log-message">
-                            <?php echo esc_html($log->message); ?>
+                            <?php 
+                            // Strikte Neutralisierung potenzieller Schad-Payloads aus dem Log-Stream
+                            echo esc_html((string)$log->message); 
+                            ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
