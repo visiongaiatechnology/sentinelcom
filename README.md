@@ -1,7 +1,7 @@
 # ⚔️ VGT Sentinel — Community Edition (Silber Status)
 
 [![License](https://img.shields.io/badge/License-AGPLv3-green?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.5.0-brightgreen?style=for-the-badge)](#)
+[![Version](https://img.shields.io/badge/Version-1.6.0-brightgreen?style=for-the-badge)](#)
 [![Platform](https://img.shields.io/badge/Platform-WordPress-21759B?style=for-the-badge&logo=wordpress)](#)
 [![Architecture](https://img.shields.io/badge/Architecture-Zero--Trust_WAF-red?style=for-the-badge)](#)
 [![Engine](https://img.shields.io/badge/Engine-Deterministic_DFA-orange?style=for-the-badge)](#)
@@ -26,15 +26,18 @@ Found a vulnerability or have an improvement? **Open an issue or contact us.**
 
 ---
 
-## 📋 Changelog — V1.5.0
+## 📋 Changelog — V1.6.0
 
-- **NEW MODULE:** VGT Shield — SHA-256 Proof-of-Work Anti-Bot Engine (Zero-UI, Zero-Cloud, DSGVO-compliant)
-- **Security:** All database outputs now fully escaped — comprehensive output escaping across the entire codebase
-- **WordPress Marketplace Compliance:** All files reviewed and adapted to meet official WordPress plugin guidelines
-- **MU-Deployer:** Removed one-click deployment — the plugin now generates a script that must be uploaded manually via FTP (WordPress policy requirement)
-- **Red Team Validation:** 3 Python-based red team test scripts added to the repository for community validation of Sentinel CE
-- **Ongoing:** New regex filter signatures added to AEGIS
-- **Ongoing:** Internal red team evaluation sessions to continuously improve Community Edition coverage
+- **NEW: Integrated Malware Signature Scanner** — 40+ embedded signatures detect known WordPress malware families, webshells, polyglot files, and obfuscation patterns directly within the CHRONOS integrity scanner
+- **NEW: Two-Stage Scan Architecture** — Signature matching runs only on NEW or MODIFIED files (post-integrity-check) — zero overhead on clean systems
+- **NEW: `MALWARE` Change Type** — Distinct from `NEW` / `MODIFIED` / `DELETED`, escalates report status to `critical`
+- **HARDENED: AEGIS Regex Engine** — Closed encoding evasion vectors and bypass paths:
+  - Extended `normalize_payload()` with HTML Entity, Unicode Escape, and Hex Escape decoding layers
+  - XSS pattern now matches all 60+ HTML event handlers via wildcard (`\bon[a-z]{3,20}\s*=`)
+  - SQLi pattern uses non-whitespace separator — closes `1/OR/1=1`, `1)OR(1=1`, `1+OR+1=1`
+  - Comment-stripping is now FAIL-CLOSED (`?? ''` instead of `?? $normalized`)
+  - RCE pattern uses lookbehind `(?<![a-zA-Z0-9_])` instead of `\b` — catches functions preceded by escape chars
+- **Previous (V1.5.0):** VGT Shield Anti-Bot module, full WordPress Marketplace compliance, 3 red team test scripts
 
 ---
 
@@ -42,7 +45,7 @@ Found a vulnerability or have an improvement? **Open an issue or contact us.**
 
 VGT Sentinel Community Edition is a **modular, zero-dependency WordPress security framework** engineered to neutralize deterministic attack vectors without sacrificing performance.
 
-It is the open-source core of the VGT Sentinel suite — a battle-hardened, multi-layered defense system built on a **Zero-Trust architecture**. Every request is inspected, every header hardened, every upload analyzed, every file hashed, and every bot challenged.
+It is the open-source core of the VGT Sentinel suite — a battle-hardened, multi-layered defense system built on a **Zero-Trust architecture**. Every request is inspected, every header hardened, every upload analyzed, every file hashed and signature-matched, and every bot challenged.
 
 <img width="1749" height="906" alt="{5F2676BC-C375-4830-A497-B98D228ED23E}" src="https://github.com/user-attachments/assets/468784d3-4022-4fed-b563-9165f2bc4001" />
 
@@ -60,8 +63,8 @@ VGT Sentinel ZTNA Security Stack:
 → Access Guard (CERBERUS)              — IP-validated brute-force prevention
 → Outbound Control (STYX LITE)         — Data exfiltration blocked
 → Payload Sanitizer (AIRLOCK)          — Binary upload inspection
-→ Integrity Monitor (CHRONOS)          — SHA-256 filesystem diff-hashing
-→ Anti-Bot Engine (VGT SHIELD)         — Zero-UI PoW bot defense (NEW)
+→ Integrity + Malware Scanner (CHRONOS) — SHA-256 diff + 40+ signatures
+→ Anti-Bot Engine (VGT SHIELD)         — Zero-UI PoW bot defense
 ```
 
 ---
@@ -82,6 +85,7 @@ AEGIS WAF (Stream Inspection)
 → Overlap-buffer for boundary-spanning patterns
 → 512KB scan limit (Memory Exhaustion prevention)
 → Tarpit: Socket-Drop + Connection: Close on critical hit
+→ HARDENED V1.6.0: 4-layer payload normalization
         ↓
 TITAN (Kernel Hardening)
 → Security headers injected
@@ -93,7 +97,7 @@ HADES (Stealth Engine)
 → URL rewrites mask WordPress directory structure
 → Custom slugs for wp-admin and wp-login.php
         ↓
-VGT SHIELD (Anti-Bot / PoW Engine)  ← NEW IN V1.5.0
+VGT SHIELD (Anti-Bot / PoW Engine)
 → SHA-256 cryptographic challenge issued by PHP server
 → Web Worker mines proof-of-work in isolated browser thread
 → X-VGT-Shield-PoW header injected into form submissions
@@ -104,9 +108,10 @@ AIRLOCK (Upload Inspection)
 → PHP wrapper, Base64 and exec-pattern detection
 → Polyglot file prevention
         ↓
-CHRONOS (Async Integrity Monitor)
+CHRONOS (Integrity + Malware Scanner)  ← UPGRADED IN V1.6.0
 → SHA-256 against integrity_matrix.php baseline
 → mtime + size pre-filter before hash computation
+→ NEW: 40+ malware signatures matched on NEW/MODIFIED files only
 → Ghost Trap honeypot triggers IP blacklisting on access
 → Cron-sliced execution (max 20s) — PHP timeout safe
         ↓
@@ -119,7 +124,7 @@ STYX LITE (Outbound Control)
 
 ## 🧩 Module Matrix
 
-### ⚡ 2.1 AEGIS — Web Application Firewall
+### ⚡ 2.1 AEGIS — Web Application Firewall (Hardened V1.6.0)
 
 <img width="1747" height="908" alt="{71C52BDB-CA2F-4A57-9919-18D402E53F60}" src="https://github.com/user-attachments/assets/ba2da2ab-b835-44d4-899d-9401818d701b" />
 
@@ -127,11 +132,17 @@ Stream-based WAF for real-time payload inspection.
 
 | Parameter | Value |
 |---|---|
-| **Engine** | Deterministic Regex Pattern Matching |
+| **Engine** | Deterministic Regex Pattern Matching (Hardened V1.6.0) |
 | **Scan Limit** | 512 KB (Memory Exhaustion prevention) |
 | **Read Strategy** | `php://input` binary stream in 4KB chunks with overlap buffer |
 | **Protected Vectors** | SQLi, XSS, RCE, LFI, Malicious User Agents |
 | **Threat Response** | Immediate socket-drop (`Connection: Close`) before header send |
+| **Normalization Layers** | URL, HTML Entity, Unicode Escape, Hex Escape |
+| **Failure Mode** | Fail-Closed PCRE — ReDoS attempts trigger immediate block |
+
+**V1.6.0 Hardening Summary:**
+
+The pattern set was extended to close gaps that gave manual attackers an evasion path. The new normalizer decodes HTML entities (`&#x6A;avascript:`), Unicode escapes (`\u0073ystem`), and hex escapes (`\x73ystem`) before pattern matching — closing four previously distinct evasion vectors at the input layer. The XSS pattern now matches any `on*` event handler via wildcard instead of a hardcoded list of five. The SQLi pattern accepts non-whitespace separators between `OR`/`AND` and operands, closing payloads like `1/OR/1=1` that bypassed the previous whitespace requirement.
 
 ---
 
@@ -231,16 +242,26 @@ Binary-level analysis of all file uploads (`multipart/form-data`).
 
 ---
 
-### 🕰️ 2.7 CHRONOS — System Integrity & Ghost Trap
+### 🕰️ 2.7 CHRONOS — Integrity + Malware Scanner *(Upgraded V1.6.0)*
 
-Asynchronous filesystem integrity monitoring with honeypot tripwire.
+Asynchronous filesystem integrity monitoring with embedded malware signature engine and honeypot tripwire.
 
 ```
-Differential Hashing:
-→ SHA-256 verified against integrity_matrix.php (PHP-formatted — prevents web exposure)
-→ mtime + size pre-filter: hash only runs when metadata changes
+Two-Stage Scan Architecture:
 
-Ghost Trap:
+Stage 1: Integrity Pre-Filter (existing)
+→ mtime + size compared against integrity_matrix.php baseline
+→ Unchanged files reuse cached SHA-256 hash — zero re-hashing
+→ Changed files proceed to Stage 2
+
+Stage 2: Signature Scan (NEW V1.6.0)
+→ 40+ embedded malware signatures matched on file content
+→ 5MB hard size limit per file (DoS prevention)
+→ PCRE fail-closed — ReDoS-resistant matching
+→ Runs ONLY on NEW or MODIFIED files
+→ Zero overhead on clean systems
+
+Ghost Trap (existing):
 → Honeypot file: wp-admin-backup-restore.php
 → HTTP access = immediate IP blacklisting
 
@@ -249,9 +270,27 @@ Execution Safety:
 → No PHP timeout risk on large installations
 ```
 
+**Embedded Malware Signature Categories (40+ patterns):**
+
+| Category | Coverage |
+|---|---|
+| **WordPress malware families** | wp_vcd injector + markers, pharma hack, WP filemanager backdoor |
+| **Generic obfuscation** | eval+base64, eval+gzinflate, eval+str_rot13, pack hex, chr concat, goto-obfuscation |
+| **Known webshells** | C99, R57, PHPSpy, WeBaCoo, b374k, WSO, FilesMan, ALFA, Marijuana Shell |
+| **Polyglot files** | GIF/JPG/PNG headers + embedded PHP code |
+| **Direct shell access** | shell_exec/passthru/system with `$_GET`/`$_POST`/`$_REQUEST` arguments |
+| **Remote file inclusion** | `https://`, `data://`, `php://input`, `php://filter` includes |
+| **Backdoor patterns** | `create_function` with user input, `assert($_POST)`, `$auth_pass` MD5 markers |
+| **Cryptominers** | Coinhive, Cryptonight, Monero/XMR, xmrig, cpuminer, minerd |
+| **Header manipulation** | Base64-decoded redirects, `wp_set_current_user` with user input |
+
+**Performance characteristics:**
+
+On a clean WordPress installation, Stage 2 is never invoked — every file matches its baseline mtime/size and reuses the cached hash. The signature database lives in PHP OPcache as a class constant after first load, with zero file I/O cost. When a file changes legitimately (plugin update, theme modification), it gets one signature scan and one hash computation. When malware is introduced, it gets flagged with a `MALWARE` change type which escalates the report status to `critical`.
+
 ---
 
-### 🤖 2.8 VGT SHIELD — Anti-Bot / Proof-of-Work Engine *(NEW — V1.5.0)*
+### 🤖 2.8 VGT SHIELD — Anti-Bot / Proof-of-Work Engine
 
 A high-performance, DSGVO-compliant reCAPTCHA alternative for WordPress. Eliminates bot interactions through a server-validated Proof-of-Work engine that operates entirely without user interaction and without external data transfers (Zero-Cloud).
 
@@ -269,38 +308,13 @@ No checkbox. No "I'm not a robot". No Google requests. No cookies. Instead: invi
 | **<10ms Server Validation** | Minimal latency on server-side hash verification |
 | **Dark/Light Mode** | Neural Aesthetics admin dashboard with full theme support |
 
-**How it works:**
-
-```
-Client (Browser)
-       │
-       ▼
-GET /wp-json/vgt-shield/v1/challenge
-→ PHP server issues cryptographic challenge
-       │
-       ▼
-Web Worker (Isolated Thread)
-→ SHA-256 Bitwise Hashing
-→ Mines proof-of-work solution (no UI blocking)
-       │
-       ▼
-Form Submission / AJAX Request
-→ X-VGT-Shield-PoW header injected
-→ Server validates hash (<10ms)
-→ Hash marked as used (replay protection)
-       │
-       ▼
-✅ Legitimate user → form processed
-❌ Bot (no valid PoW) → request blocked
-```
-
 **Native integrations:** WooCommerce · Contact Form 7 · WPForms · Gravity Forms · WordPress Core Comments
 
 ---
 
 ## 🔴 Red Team Validation — Community Testing Scripts
 
-The repository includes **3 Python-based red team test scripts** for independent validation of Sentinel CE. These tools allow the community to verify that each module is functioning as expected against their own installations.
+The repository includes **3 Python-based red team test scripts** for independent validation of Sentinel CE.
 
 > ⚠️ **Only use against your own servers.** Running these scripts against third-party systems without explicit authorization is illegal.
 
@@ -309,8 +323,6 @@ The repository includes **3 Python-based red team test scripts** for independent
 | `redteam_aegis.py` | AEGIS WAF | SQLi, XSS, RCE, LFI payload injection — validates block rate and response behavior |
 | `redteam_cerberus.py` | CERBERUS | Brute-force simulation with IP rotation — validates fail-state tracking and lockout |
 | `redteam_shield.py` | VGT SHIELD | Bot simulation without PoW — validates challenge-response enforcement |
-
-Run them from an isolated environment after activating Sentinel CE on a test WordPress installation. Each script outputs a structured report with block rate, response codes, and latency metrics.
 
 ---
 
@@ -322,6 +334,8 @@ Run them from an isolated environment after activating Sentinel CE on a test Wor
 |---|---|
 | **Fast-Path Routing** | Static assets bypass WAF inspection entirely — saves >90% CPU cycles |
 | **Stream Chunking** | Payload inspection via chunked reads — low, stable RAM footprint |
+| **Two-Stage Integrity Scan** | Signature scanning skipped entirely on clean files |
+| **OPcache-Resident Signatures** | Malware database loaded once, lives in OPcache — zero file I/O at runtime |
 | **Async Scheduling** | CHRONOS runs in time-sliced cron — never blocks request handling |
 | **Web Worker Isolation** | VGT SHIELD PoW mining runs in isolated thread — zero UI blocking |
 | **Zero Dependencies** | No external libraries — no supply chain risk, no overhead |
@@ -337,17 +351,7 @@ Run them from an isolated environment after activating Sentinel CE on a test Wor
 | **Page Builders** | Bridge Manager auto-disables conflicting DOM/header interventions for Elementor, Divi, Oxygen |
 | **VGT Ecosystem** | Native VisionLegalPro support via Shadow-Net Asset Routing |
 | **VGT Myrmidon** | AEGIS Co-op Mode — whitelists Myrmidon ZTNA API endpoints automatically |
-| **WordPress Marketplace** | Fully compliant with WordPress plugin guidelines as of V1.5.0 |
-
----
-
-## ⚠️ WordPress Marketplace Compliance (V1.5.0)
-
-As of V1.5.0, the entire codebase has been reviewed and adapted to meet official WordPress plugin directory guidelines:
-
-- **Output escaping:** All database outputs and dynamic values are now fully escaped using WordPress core functions (`esc_html`, `esc_attr`, `esc_url`, `wp_kses`) throughout the entire plugin
-- **MU-Deployer:** One-click MU plugin deployment has been removed per WordPress policy. The plugin now generates a ready-to-use script that must be uploaded manually to `wp-content/mu-plugins/` via FTP or SFTP
-- **Code Standards:** All files reviewed for compliance with WordPress Coding Standards
+| **WordPress Marketplace** | Fully compliant with WordPress plugin guidelines |
 
 ---
 
@@ -365,6 +369,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 | **ZEUS** — Pre-Boot WAF via `auto_prepend_file` | ❌ | ✅ |
 | **MORPHEUS** — Hypervisor for Plugins | ❌ | ✅ |
 | **GORGON** — Global Swarm Intelligence Threat Feed | ❌ | ✅ |
+| **NEXUS Live Signature Updates** — Hot-loadable threat patterns | ❌ | ✅ |
 | **API CRYPTO VAULT** — AES-256-GCM Database Payload Encryption | ❌ | ✅ |
 | Deterministic WAF (AEGIS Lite) | ✅ | ✅ |
 | Kernel Hardening (TITAN Lite) | ✅ | ✅ |
@@ -372,7 +377,7 @@ The following capabilities are **exclusive to VGT Sentinel Pro / Platin Status:*
 | Access Guard (CERBERUS) | ✅ | ✅ |
 | Outbound Control (STYX LITE) | ✅ | ✅ |
 | Payload Sanitizer (AIRLOCK Lite) | ✅ | ✅ |
-| Integrity Monitor (CHRONOS) | ✅ | ✅ |
+| Integrity + Malware Scanner (CHRONOS) | ✅ | ✅ |
 | Anti-Bot PoW Engine (VGT SHIELD) | ✅ | ✅ |
 
 ---
@@ -390,7 +395,7 @@ git clone https://github.com/visiongaiatechnology/sentinelcom
 # 3. HADES: Configure custom login slug
 # Settings → Sentinel → Stealth Engine
 
-# 4. CHRONOS: Generate initial integrity manifest
+# 4. CHRONOS: Generate initial integrity manifest + signature scan
 # Settings → Sentinel → Integrity Monitor → Generate Baseline
 
 # 5. VGT SHIELD: Activate Anti-Bot PoW
@@ -406,7 +411,7 @@ On first activation, Sentinel automatically:
 → Applies TITAN security headers
 → Activates HADES URL rewrites (.htaccess / Nginx rules)
 → Initializes CERBERUS fail-state cache
-→ Generates CHRONOS integrity_matrix.php baseline
+→ Generates CHRONOS integrity_matrix.php baseline + signature scan
 → Deploys Ghost Trap honeypot
 → Activates STYX outbound kill switch
 → Registers VGT SHIELD challenge endpoint (/wp-json/vgt-shield/v1/challenge)
@@ -425,6 +430,7 @@ On first activation, Sentinel automatically:
 | Tool | Type | Purpose |
 |---|---|---|
 | ⚔️ **VGT Sentinel** | **WAF / IDS Framework** | Zero-Trust WordPress security suite — you are here |
+| 🏰 **[Throne Guard](https://github.com/visiongaiatechnology/throne-guard)** | **Capability Hardening** | Strips toxic capabilities from Administrator role |
 | 🛡️ **[VGT Myrmidon](https://github.com/visiongaiatechnology/vgtmyrmidon)** | **ZTNA** | Zero Trust device registry and cryptographic integrity verification |
 | ⚡ **[VGT Auto-Punisher](https://github.com/visiongaiatechnology/vgt-auto-punisher)** | **IDS** | L4+L7 Hybrid IDS — attackers terminated before they even knock |
 | 📊 **[VGT Dattrack](https://github.com/visiongaiatechnology/dattrack)** | **Analytics** | Sovereign analytics engine — your data, your server, no third parties |
@@ -464,4 +470,4 @@ VisionGaia Technology builds enterprise-grade security infrastructure — engine
 
 ---
 
-*Version 1.5.0 — VGT Sentinel Community Edition // Zero-Trust WAF Framework // Deterministic DFA Engine // WordPress Marketplace Ready // AGPLv3*
+*Version 1.6.0 — VGT Sentinel Community Edition // Zero-Trust WAF Framework // Deterministic DFA Engine // Integrated Malware Scanner // Hardened Pattern Set // WordPress Marketplace Ready // AGPLv3*
