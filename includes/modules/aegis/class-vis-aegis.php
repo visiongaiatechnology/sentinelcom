@@ -15,6 +15,8 @@ if (!defined('ABSPATH')) {
  * - [ FIXED ]: Zero-Trust Forward-Confirmed Reverse DNS (FCrDNS) implementiert.
  * - [ FIXED ]: PCRE Fail-Closed Architecture (ReDoS-Immunität).
  * - Multi-Byte Boundary-Safe Stream Inspection mit optimierter I/O und GC.
+ * - [ V2 UPGRADE ]: Extended Payload Normalizer (Layers 0-5) & Hardened Signatures.
+ * - [ V2.1 HOTFIX ]: Path Isolation, DNS Boundary Guards & Recursive Key Inspection.
  */
 class VGTS_Aegis {
 
@@ -26,12 +28,12 @@ class VGTS_Aegis {
     private array $whitelist_ips = [];
     private array $whitelist_uas = [];
 
-    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen
+    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen (V2 Patterns inline-compiled)
     private array $patterns = [
-        'rce'         => '/(?i)(?>\b(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load)\b\s*[\(\[])|`[^`]{1,255}`|\$\{(?>jndi|env):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir)|\\\\x[0-9a-fA-F]{2}|(?>O:\d+:"[^"]+":\d+:{)/S',
+        'rce'         => '/(?i)(?<![a-zA-Z0-9_])(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load|preg_replace_callback|array_map|array_filter|array_walk|usort|uksort|register_shutdown_function|register_tick_function|invokefunction|invokeargs|setTimeout|setInterval|Function)\s*[\(\[]|`[^`]{1,255}`|\$\{(?>jndi|env|sys|lower|upper):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&|`)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir|powershell|certutil|bitsadmin|rundll32)|(?>O:\d+:"[^"]+":\d+:\{)|rO0AB|\\\\x80\\\\x04\\\\x95/S',
         'lfi'         => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
-        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema|waitfor[\W_]+delay|(?>\b(?>benchmark|sleep|extractvalue|updatexml|hex|unhex|concat)\s*\()|(?>\s+(?>OR|AND)\s+[\d\'"`]+\s*(?>=|>|<|LIKE)\s*[\d\'"`]+)|(?>drop\s+(?>table|database))|(?>alter\s+table)|(?>\{oj\s+)|(?>\$(?>where|ne|regex|gt|lt|exists|expr|nin)(?:"|\')?\s*:)|(?>\b(?>order|group)\s+by\b)|(?:--[ \+]*$)/S',
-        'xss'         => '/(?i)(?><script)|(?>\bjavascript:)|(?>on(?>load|error|click|mouseover|pointer)\s*=)|base64_decode|(?>\bvbscript:)|(?>data:text\/(?>html|xml))|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\$on\.constructor/S',
+        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])(?>order|group)\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
+        'xss'         => '/(?i)(?><\s*\/?\s*(?:script|svg|math|iframe|object|embed|applet|frame|frameset))|\bon[a-z]{3,20}\s*=|(?>\bjavascript\s*:)|(?>\bvbscript\s*:)|(?>\blivescript\s*:)|(?>\bdata\s*:\s*(?>text\/html|application\/(?:javascript|x-javascript)|image\/svg))|(?><\s*style[^>]*>.*?(?>@import|expression\s*\(|behavior\s*:|javascript\s*:))|(?><\s*link[^>]+(?>rel\s*=\s*["\']?stylesheet["\']?[^>]+href\s*=\s*["\']?\s*(?>javascript|data):))|(?>srcdoc\s*=\s*["\']?[^"\']*<\s*script)|(?>formaction\s*=\s*["\']?\s*javascript\s*:)|(?><\s*(?>animate|set)[^>]+(?>values|to|from|by)\s*=\s*["\']?\s*javascript\s*:)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\s*\$on\.constructor|\{\{\s*constructor\.constructor|(?>src\s*=\s*["\']?\s*data:[^"\']{20,}base64)/S',
         'ua'          => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan|zgrab|projectdiscovery|nuclei)/S',
         'framework'   => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))|\.(?>env|git|svn)(?>\/|\b)/S',
         'db_direct'   => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
@@ -107,12 +109,14 @@ class VGTS_Aegis {
     }
 
     /**
-     * VGT OPEN SOURCE: Recursive Baseline Normalization
-     * Zerstört Double-URL-Encoding & Basis-Kommentare für akkurate Regex-Erfassung.
+     * VGT OPEN SOURCE: Extended Recursive Normalization
+     * Decodes the four encoding layers attackers use to bypass regex inspection.
      */
     private function normalize_payload(string $input): string {
+        // Layer 0: Strip null bytes and control whitespace
         $normalized = str_replace(["\0", "\r", "\n", "\t"], ' ', $input);
-        
+
+        // Layer 1: URL Decoding (existing — up to 3 nested levels)
         $loops = 0;
         do {
             $old = $normalized;
@@ -120,7 +124,34 @@ class VGTS_Aegis {
             $loops++;
         } while ($old !== $normalized && $loops < 3);
 
-        $normalized = preg_replace('/(?:\/\*.*?\*\/|<!\-\-.*?\-\->)/s', ' ', $normalized) ?? $normalized;
+        // Layer 2: HTML Entity Decoding
+        $normalized = html_entity_decode($normalized, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Layer 3: Unicode Escape Decoding
+        $normalized = preg_replace_callback(
+            '/\\\\u([0-9a-fA-F]{4})/',
+            static function ($m) {
+                try {
+                    return mb_convert_encoding(pack('H*', $m[1]), 'UTF-8', 'UCS-2BE');
+                } catch (\Throwable) {
+                    return '';
+                }
+            },
+            $normalized
+        ) ?? $normalized;
+
+        // Layer 4: Hex Escape Decoding
+        $normalized = preg_replace_callback(
+            '/\\\\x([0-9a-fA-F]{2})/',
+            static function ($m) {
+                return chr(hexdec($m[1]));
+            },
+            $normalized
+        ) ?? $normalized;
+
+        // Layer 5: Comment stripping — FAIL-CLOSED instead of fail-open (?? '')
+        $normalized = preg_replace('/(?:\/\*.*?\*\/|<!\-\-.*?\-\->|--[\s\r\n]|#.*$)/sm', ' ', $normalized) ?? '';
+
         return $normalized;
     }
 
@@ -211,6 +242,14 @@ class VGTS_Aegis {
 
     private function recursive_array_scan(array $data, string $context = 'DATA'): void {
         foreach ($data as $key => $value) {
+            if (is_string($key)) {
+                $norm_key = $this->normalize_payload($key);
+                foreach ($this->patterns as $type => $regex) {
+                    if ($type === 'ua') continue;
+                    $this->match_pattern($regex, $norm_key, $type . '_' . strtolower($context) . '_key');
+                }
+            }
+
             if (is_array($value)) {
                 $this->recursive_array_scan($value, $context);
             } elseif (is_string($value)) {
@@ -433,7 +472,7 @@ class VGTS_Aegis {
             if ($hostname !== false && $hostname !== $this->validated_ip) {
                 $forward_ips = gethostbynamel($hostname);
                 if (is_array($forward_ips) && in_array($this->validated_ip, $forward_ips, true)) {
-                    if (preg_match('/(?:googlebot\.com|search\.msn\.com|yandex\.com|yandex\.net|yandex\.ru|duckduckgo\.com)$/i', $hostname)) {
+                    if (preg_match('/(?:\.|^)(googlebot\.com|search\.msn\.com|yandex\.com|yandex\.net|yandex\.ru|duckduckgo\.com)$/i', $hostname)) {
                         return true;
                     }
                 }
@@ -446,6 +485,13 @@ class VGTS_Aegis {
     private function is_static_asset(): bool {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $uri = (string) wp_unslash($_SERVER['REQUEST_URI'] ?? '');
-        return (bool) preg_match('/\.(jpg|jpeg|png|gif|webp|svg|css|js|woff2?|ttf|eot|ico)(?:\?.*)?$/i', $uri);
+        $path = parse_url($uri, PHP_URL_PATH) ?? '';
+
+        // Path-Info Attack Guard
+        if (stripos($path, '.php/') !== false) {
+        return false;
+        }
+
+        return (bool) preg_match('/\.(jpg|jpeg|png|gif|webp|svg|css|js|woff2?|ttf|eot|ico)$/i', $path);
     }
 }
