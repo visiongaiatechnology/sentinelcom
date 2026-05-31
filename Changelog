@@ -1,3 +1,14 @@
+🛠 VGT SENTINEL CE: CHANGELOG – SECURITY PATCH 2026.05.31
+1. HADES PHP8.* Fix 
+PHP 8+ Safe-Guard (deny_access): Added type, empty string, and existence checks (file_exists) for the 404 template to prevent the fatal ValueError: Path cannot be empty.
+
+Cascading Fallback System: If no 404 template exists in the active theme, the code now safely falls back to the theme's index.php, or as a last resort, to a clean wp_die().
+
+
+
+
+
+
 🛠 VGT SENTINEL CE: CHANGELOG – SECURITY PATCH 2026.04.14
 1. CERBERUS: ATOMIC LOCKING ENGINE (RACE CONDITION FIX)
 Vector: Time-of-Check to Time-of-Use (TOCTOU) Bypass.
