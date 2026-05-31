@@ -77,24 +77,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             return new Promise((resolve) => {
-                const worker = new Worker(vgtsAntibotConfig.workerUrl);
-                
-                worker.onmessage = (e) => {
-                    this.currentProof = e.data;
-                    this.isMining = false;
-                    worker.terminate();
-                    resolve(e.data);
-                };
-                
-                worker.onerror = () => {
-                    worker.terminate();
+                try {
+                    const worker = new Worker(vgtsAntibotConfig.workerUrl);
+                    
+                    worker.onmessage = (e) => {
+                        this.currentProof = e.data;
+                        this.isMining = false;
+                        worker.terminate();
+                        resolve(e.data);
+                    };
+                    
+                    worker.onerror = () => {
+                        worker.terminate();
+                        this.mineFallback(challenge).then(proof => {
+                            this.currentProof = proof;
+                            this.isMining = false;
+                            resolve(proof);
+                        });
+                    };
+                    worker.postMessage(challenge);
+                } catch (error) {
+                    // Fallback bei restriktiven CSP- oder Cross-Origin Sandbox Richtlinien
                     this.mineFallback(challenge).then(proof => {
                         this.currentProof = proof;
                         this.isMining = false;
                         resolve(proof);
                     });
-                };
-                worker.postMessage(challenge);
+                }
             });
         },
 
@@ -103,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = '0'.repeat(challenge.difficulty);
             while (true) {
                 const hashHex = this.syncSha256(challenge.seed + nonce);
-                if (hashHex.startsWith(target)) return { ...challenge, nonce: nonce };
+                if (hashHex && hashHex.startsWith(target)) return { ...challenge, nonce: nonce };
                 nonce++;
                 if (nonce % 1000 === 0) await new Promise(r => setTimeout(r, 0)); 
             }
@@ -141,10 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (requestObj) {
                                 const newHeaders = new Headers(requestObj.headers);
                                 newHeaders.append('X-VGTS-Antibot-PoW', JSON.stringify(proof));
-                                args[0] = new Request(requestObj, { 
-                                    headers: newHeaders,
-                                    body: requestObj.body 
-                                });
+                                
+                                const requestInit = { headers: newHeaders };
+                                // GET und HEAD Requests dürfen laut W3C/Browser-Spezifikationen keinen Body haben
+                                if (requestObj.method !== 'GET' && requestObj.method !== 'HEAD') {
+                                    requestInit.body = requestObj.body;
+                                }
+
+                                args[0] = new Request(requestObj, requestInit);
                             } else {
                                 args[1] = args[1] || {};
                                 args[1].headers = args[1].headers || {};
@@ -218,6 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.style.pointerEvents = 'none';
                 }
 
+                // Falls der Hintergrund-Worker noch nicht gestartet war oder abgebrochen wurde
+                if (!this.currentProof && !this.isMining) {
+                    this.mineChallenge();
+                }
+
+                // Warteschleife bis Proof bereit ist
                 while (!this.currentProof && this.isMining) await new Promise(r => setTimeout(r, 50));
                 
                 const proof = this.consumeProof();
@@ -236,8 +255,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     else btn.innerText = originalText;
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
-                    btn.click();
-                } else {
+
+                    // Speichere den Button-Namen und Wert, damit der WordPress-Handler ihn im POST-Request sieht
+                    if (btn.name) {
+                        let btnInput = document.createElement('input');
+                        btnInput.type = 'hidden';
+                        btnInput.name = btn.name;
+                        btnInput.value = btn.value || '';
+                        form.appendChild(btnInput);
+                    }
+                }
+
+                // Abschicken mittels nativen Prototypen, um Endlosschleifen & asynchrone Klickblockaden zu umgehen
+                try {
+                    HTMLFormElement.prototype.submit.call(form);
+                } catch (err) {
                     form.submit();
                 }
             });
