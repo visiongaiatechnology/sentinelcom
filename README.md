@@ -26,18 +26,20 @@ Found a vulnerability or have an improvement? **Open an issue or contact us.**
 
 ---
 
-## 📋 Changelog — V1.6.0
+## 📋 Changelog — V1.6.1
 
-- **NEW: Integrated Malware Signature Scanner** — 40+ embedded signatures detect known WordPress malware families, webshells, polyglot files, and obfuscation patterns directly within the CHRONOS integrity scanner
-- **NEW: Two-Stage Scan Architecture** — Signature matching runs only on NEW or MODIFIED files (post-integrity-check) — zero overhead on clean systems
-- **NEW: `MALWARE` Change Type** — Distinct from `NEW` / `MODIFIED` / `DELETED`, escalates report status to `critical`
-- **HARDENED: AEGIS Regex Engine** — Closed encoding evasion vectors and bypass paths:
-  - Extended `normalize_payload()` with HTML Entity, Unicode Escape, and Hex Escape decoding layers
-  - XSS pattern now matches all 60+ HTML event handlers via wildcard (`\bon[a-z]{3,20}\s*=`)
-  - SQLi pattern uses non-whitespace separator — closes `1/OR/1=1`, `1)OR(1=1`, `1+OR+1=1`
-  - Comment-stripping is now FAIL-CLOSED (`?? ''` instead of `?? $normalized`)
-  - RCE pattern uses lookbehind `(?<![a-zA-Z0-9_])` instead of `\b` — catches functions preceded by escape chars
-- **Previous (V1.5.0):** VGT Shield Anti-Bot module, full WordPress Marketplace compliance, 3 red team test scripts
+- **Bug Fix: ANTIBOT** - Fixed Syntax Parse Errors (Trailing Braces)
+- Removed illegal trailing closing braces (}) at the bottom of both vis-antibot-worker.js and vis-antibot-engine.js that caused an immediate browser-level crash (Uncaught SyntaxError: Unexpected token '}').
+- Resolved Async Form Submission Block (User-Trust Loss)
+- Switched from programmatic btn.click() inside an async/awaited scope to bypassing the browser's untrusted action filters.
+- The engine now intercepts the submit event, dynamically appends the submit button's name and value as hidden input elements (preventing WordPress from losing track of which button triggered the request), and securely dispatches the form - using the native HTMLFormElement.prototype.submit.call(form).
+- Hardened Web Worker Sandbox Fallback
+- Added a strict try-catch wrapper around the Worker constructor. If a browser blocks the Web Worker due to restrictive Content Security Policies (CSP), Sandbox constraints, or CORS-issues, the engine instantly and silently falls back to synchronous main-thread mining without hanging or throwing errors.
+- Secured Fetch Interceptors for GET/HEAD Requests
+- Optimized the Fetch hijacking layer to bypass cloning/injecting bodies for GET and HEAD requests, strictly adhering to the W3C spec and preventing TypeError aborts on AJAX routines.
+
+- **PHP 8.# Fix: HADES MODUL** — Added type, empty string, and existence checks (file_exists) for the 404 template to prevent the fatal ValueError: Path cannot be empty.
+Cascading Fallback System: If no 404 template exists in the active theme, the code now safely falls back to the theme's index.php, or as a last resort, to a clean wp_die().
 
 ---
 
