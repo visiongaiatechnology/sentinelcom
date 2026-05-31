@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) exit;
  * MODULE: HADES ROUTES (The Maze)
  * Status: DIAMANT VGT SUPREME (WP.ORG COMPLIANT)
  * Logic: Hides wp-login.php and wp-admin via URL Rewrite & Filtering.
- * Fix: Nullable Type-Hinting (?string) integriert zur Prävention von WP Core TypeErrors.
+ * Fix: Safe template-include checking to prevent PHP 8+ "Path cannot be empty" ValueErrors.
  */
 class VGTS_Hades_Routes {
 
@@ -125,15 +125,37 @@ class VGTS_Hades_Routes {
         }
     }
 
+    /**
+     * Verweigert den Zugriff und liefert eine 404-Seite aus.
+     * VGT FIX: Robustes Fallback eingebaut, um ValueError (Empty Path) unter PHP 8 zu verhindern.
+     */
     private function deny_access(): void {
-        // Zeige 404 statt 403, um Existenz zu verschleiern
         global $wp_query;
         if (isset($wp_query)) {
             $wp_query->set_404();
         }
         status_header(404);
         nocache_headers();
-        include(get_query_template('404'));
+
+        $template = get_query_template('404');
+
+        // Prüfen, ob das Template existiert und geladen werden kann
+        if (is_string($template) && $template !== '' && file_exists($template)) {
+            include($template);
+        } else {
+            // Fallback 1: Versuche die index.php des Themes zu laden
+            $index_template = get_index_template();
+            if (is_string($index_template) && $index_template !== '' && file_exists($index_template)) {
+                include($index_template);
+            } else {
+                // Fallback 2: Wenn gar nichts verfügbar ist, nutze eine wp_die Fehlermeldung
+                wp_die(
+                    __('Page not found.', 'sentinelcom-main'),
+                    __('Page not found', 'sentinelcom-main'),
+                    ['response' => 404]
+                );
+            }
+        }
         exit;
     }
 
