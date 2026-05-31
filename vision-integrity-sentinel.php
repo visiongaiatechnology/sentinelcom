@@ -2,7 +2,7 @@
 /**
  * Plugin Name: VGT Sentinel CE
  * Description: A zero-trust Web Application Firewall (WAF) and security framework featuring robust brute-force protection, file integrity monitoring, and kernel-level system hardening.
- * Version: 1.6.0
+ * Version: 1.6.1
  * Author: VisionGaiaTechnology
  * Author URI: https://visiongaiatechnology.de
  * License: AGPLv3
@@ -12,7 +12,7 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) exit;
 
 // --- SYSTEM KONSTANTEN ---
-define('VGTS_VERSION', '1.5.0');
+define('VGTS_VERSION', '1.6.1');
 define('VGTS_PATH', plugin_dir_path(__FILE__));
 define('VGTS_URL', plugin_dir_url(__FILE__));
 define('VGTS_SENTINEL_ICON', VGTS_URL . 'Sentinel.png');
