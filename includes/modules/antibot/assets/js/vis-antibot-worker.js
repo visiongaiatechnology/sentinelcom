@@ -88,7 +88,7 @@ self.onmessage = function(e) {
         const currentString = seed + nonce;
         const hashHex = sha256(currentString);
         
-        if (hashHex.startsWith(target)) {
+        if (hashHex && hashHex.startsWith(target)) {
             postMessage({ seed, timestamp, nonce, target });
             break;
         }
