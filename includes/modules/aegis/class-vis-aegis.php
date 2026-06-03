@@ -40,6 +40,7 @@ class VGTS_Aegis {
         'gql_recon'   => '/(?i)(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
         'rce_source_hijack'  => '/(?i)(?>action|data|plugin)[^&]*?(?>source|url|install|path)[^&]*?=(?>https?%3A%2F%2F|https?:\/\/|ftps?%3A%2F%2F|%68%74%74%70|%48%54%54%50)/S',
         'array_bypass'=> '/(?i)(?>\b[a-z0-9_]+(?:\[|%5B)[a-z0-9_\'"%]*?(?:\]|%5D)\s*=(?>\s|%20)*(?>system|exec|shell_exec|eval|assert|passthru|popen|proc_open|pcntl_exec|phpinfo))/S',
+        'probes'        => '/(?i)(?>\.(?>env|git|htaccess|php_bak|old|bak|sql|tar\.gz|zip|remote-sync|ds_store|idea|vscode))|config\.php|wp-config\.php|\.aws\/credentials|vendor\/phpunit|composer\.json|phpunit\/src|\/\.well-known\/security|\/\.svn\/|\/\.hg\/|\/web\.config|\/\.user\.ini|\/telescope\/|\/horizon\/|\/_profiler\//S',
     ];
 
     public function __construct(array $options) {
@@ -393,7 +394,7 @@ class VGTS_Aegis {
     private function terminate(string $reason, string $action_type, string $vector_type): void {
         global $wpdb;
 
-        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua'], true));
+        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua', 'probes'], true));
         if ($will_ban) {
             $action_type = 'BAN'; 
         }
