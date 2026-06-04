@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
  * - [ V2.1 HOTFIX ]: Path Isolation, DNS Boundary Guards & Recursive Key Inspection.
  * - [ V2.2 HARDENING ]: Mutated Multipass Normalization & Strict Local-Socket Whitelisting.
  * - [ V2.3 SUPREME HARDENING ]: Fixed Possessive SQLi Bypass, Multi-Pass URL Decoding & IIS Unicode Guard.
+ * - [ V2.4 HOTFIX ]: Safe IP-Address Filtering & Intelligent Proxy Spoofing Boundary.
  */
 class VGTS_Aegis {
 
@@ -34,7 +35,7 @@ class VGTS_Aegis {
     private array $patterns = [
         'rce'         => '/(?i)(?<![a-zA-Z0-9_])(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load|preg_replace_callback|array_map|array_filter|array_walk|usort|uksort|register_shutdown_function|register_tick_function|invokefunction|invokeargs|setTimeout|setInterval|Function)\s*[\(\[]|`[^`]{1,255}`|\$\{(?>jndi|env|sys|lower|upper):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&|`)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir|powershell|certutil|bitsadmin|rundll32)|\bcat\b|\bwhoami\b|\bid\b|\buname\b|\bexec\b|\bpassthru\b|\bsystem\b|\bshell_exec\b|\/(?>bin|usr|etc|var|tmp|opt)\/[a-zA-Z0-9_\/\.\?\*-]{1,100}|(?>O:\d+:"[^"]+":\d+:\{)|rO0AB|\\\\x80\\\\x04\\\\x95/S',
         'lfi'         => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
-        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|(?<![a-zA-Z0-9_])union\s*select|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])order\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x[0-9a-fA-F]+\b|(?<![a-zA-Z0-9_])select[^;]{1,150}?from|(?:\|\||&&|(?<![a-zA-Z0-9_])(?:OR|AND|XOR))\s*\(?\s*select\b|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
+        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|(?<![a-zA-Z0-9_])union\s*select|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])order\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x[0-9a-fA-F]+\b|(?<![a-zA-Z0-9_])select[^;]{1,150}?from|(?:\|\||&&|(?<![a-zA-Z0-9_])(?>OR|AND|XOR))\s*\(?\s*select\b|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
         'xss'         => '/(?i)(?><\s*\/?\s*(?:script|svg|math|iframe|object|embed|applet|frame|frameset))|\bon[a-z]{3,20}\s*=|(?>\bjavascript\s*:)|(?>\bvbscript\s*:)|(?>\blivescript\s*:)|(?>\bdata\s*:\s*(?>text\/html|application\/(?:javascript|x-javascript)|image\/svg))|(?><\s style[^>]*>.*?(?>@import|expression\s*\(|behavior\s*:|javascript\s*:))|(?><\s*link[^>]+(?>rel\s*=\s*["\']?stylesheet["\']?[^>]+href\s*=\s*["\']?\s*(?>javascript|data):))|(?>srcdoc\s*=\s*["\']?[^"\']*<\s*script)|(?>formaction\s*=\s*["\']?\s*javascript\s*:)|(?><\s*(?>animate|set)[^>]+(?>values|to|from|by)\s*=\s*["\']?\s*javascript\s*:)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\s*\$on\.constructor|\{\{\s*constructor\.constructor|(?>src\s*=\s*["\']?\s*data:[^"\']{20,}base64)/S',
         'ua'          => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan|zgrab|projectdiscovery|nuclei)/S',
         'framework'   => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))|\.(?>env|git|svn)(?>\/|\b)/S',
@@ -119,7 +120,6 @@ class VGTS_Aegis {
     /**
      * VGT KERNEL DEEP SCAN MUTATIONS PIPELINE (Multi-Pass Normalizer)
      * Scannt den Input parallel gegen vier verschiedene Dekodierungs- und Stripping-Zustände.
-     * Dies neutralisiert jegliche Form von Quote-Slicing, Kommentar-Splitting und Unicode-Smuggling.
      */
     private function scan_value_mutations(string $value, string $context): void {
         $normalized = $this->normalize_payload($value);
@@ -346,14 +346,47 @@ class VGTS_Aegis {
         unset($overlap_buffer); 
     }
 
-    private static function detect_proxy_spoofing(string $value): bool {
-        $forbidden_ranges = ['127.0.0.1', 'localhost', '10.', '192.168.', '172.16.', '::1', 'fe80::1'];
-        foreach ($forbidden_ranges as $range) {
-            if (stripos($value, $range) !== false) {
-                return true;
-            }
+    /**
+     * Prüft, ob eine IP-Adresse im privaten oder Loopback-Bereich liegt.
+     * Unterstützt IPv4 und IPv6 nativ und absolut ausfallsicher.
+     */
+    private static function is_private_or_loopback_ip(string $ip): bool {
+        $ip = trim($ip);
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return false;
         }
-        return false;
+        // FILTER_FLAG_NO_PRIV_RANGE filtert private IPs (z.B. 10.0.0.0/8, 192.168.0.0/16, etc.) heraus.
+        // FILTER_FLAG_NO_RES_RANGE filtert Loopback/Reserved IPs (z.B. 127.0.0.1, ::1, etc.) heraus.
+        // Wenn einer dieser Filter fehlschlägt (also "false" zurückgibt), handelt es sich um eine private/local IP.
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+    }
+
+    /**
+     * VGT-Gehärteter Proxy-Spoofing-Detektor (V2.4).
+     * Filtert unzulässige private IP-Spoofings von externen Quellen aus, 
+     * verhindert aber Fehlalarme bei lokalen Entwicklungsumgebungen (127.0.0.1) 
+     * oder regulären User-Agent String-Matches (z. B. "Windows NT 10.0").
+     */
+    private static function detect_proxy_spoofing(string $value): bool {
+        $socket_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        
+        // Wenn der anfragende Socket selbst lokal ist (z. B. lokale Entwicklung oder lokaler Reverse-Proxy),
+        // erzwingen wir keine Blockade, um den Admin-Zugang nicht einzuschränken.
+        if ($socket_ip === '' || self::is_private_or_loopback_ip($socket_ip)) {
+            return false;
+        }
+
+        // Segmentiere IP-Weiterleitungen (z. B. "Client-IP, Proxy1, Proxy2")
+        $ips = array_filter(array_map('trim', explode(',', $value)));
+        if (empty($ips)) {
+            return false;
+        }
+
+        $client_ip = $ips[0];
+
+        // Falls die IP-Validierung fehlschlägt (weil es z. B. ein User-Agent wie "Chrome/110..." ist), 
+        // wird es sicher ignoriert. Nur echte, deklarierte private IPs von externen Sockets werden geblockt.
+        return self::is_private_or_loopback_ip($client_ip);
     }
 
     private function inspect_headers(): void {
@@ -365,6 +398,23 @@ class VGTS_Aegis {
             $this->terminate("Ghost POST detected (No UA/Ref)", 'BLOCK', 'bot');
         }
 
+        // 1. ISOLIERTER PROXY SPOOFING SCHUTZ: Nur auf tatsächliche IP-Header anwenden!
+        $ip_header_keys = [
+            'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 
+            'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 
+            'HTTP_CLUSTER_CLIENT_IP', 'HTTP_CF_CONNECTING_IP'
+        ];
+
+        foreach ($ip_header_keys as $key) {
+            if (isset($_SERVER[$key]) && is_string($_SERVER[$key])) {
+                $val = wp_unslash($_SERVER[$key]);
+                if ($val !== '' && self::detect_proxy_spoofing($val)) {
+                    $this->terminate("Proxy Spoofing detected in header [$key].", 'BLOCK', 'proxy_spoofing');
+                }
+            }
+        }
+
+        // 2. REGULÄRER WAF DETEKTOR SCAN (Sucht nach SQLi, RCE, LFI in Headern und Cookies)
         $critical_headers = [
             'HTTP_USER_AGENT', 'HTTP_REFERER', 'HTTP_X_FORWARDED_FOR', 
             'HTTP_X_REAL_IP', 'HTTP_ACCEPT', 'HTTP_ACCEPT_LANGUAGE', 
@@ -393,12 +443,6 @@ class VGTS_Aegis {
 
         foreach ($headers_to_scan as $header_val) {
             if ($header_val === '') continue;
-            
-            // FCrDNS proxy spoofing boundary guard
-            if (self::detect_proxy_spoofing((string)$header_val)) {
-                $this->terminate("Proxy Spoofing detected in header.", 'BLOCK', 'proxy_spoofing');
-            }
-
             $this->scan_value_mutations((string) $header_val, 'header');
         }
     }
