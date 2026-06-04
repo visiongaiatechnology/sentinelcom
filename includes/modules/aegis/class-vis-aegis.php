@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) {
  * - [ V2 UPGRADE ]: Extended Payload Normalizer (Layers 0-5) & Hardened Signatures.
  * - [ V2.1 HOTFIX ]: Path Isolation, DNS Boundary Guards & Recursive Key Inspection.
  * - [ V2.2 HARDENING ]: Mutated Multipass Normalization & Strict Local-Socket Whitelisting.
+ * - [ V2.3 SUPREME HARDENING ]: Fixed Possessive SQLi Bypass, Multi-Pass URL Decoding & IIS Unicode Guard.
  */
 class VGTS_Aegis {
 
@@ -29,11 +30,11 @@ class VGTS_Aegis {
     private array $whitelist_ips = [];
     private array $whitelist_uas = [];
 
-    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen (V2.2 gehärtet & inline-kompiliert)
+    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen (V2.3 gehärtet & inline-kompiliert)
     private array $patterns = [
         'rce'         => '/(?i)(?<![a-zA-Z0-9_])(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load|preg_replace_callback|array_map|array_filter|array_walk|usort|uksort|register_shutdown_function|register_tick_function|invokefunction|invokeargs|setTimeout|setInterval|Function)\s*[\(\[]|`[^`]{1,255}`|\$\{(?>jndi|env|sys|lower|upper):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&|`)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir|powershell|certutil|bitsadmin|rundll32)|\bcat\b|\bwhoami\b|\bid\b|\buname\b|\bexec\b|\bpassthru\b|\bsystem\b|\bshell_exec\b|\/(?>bin|usr|etc|var|tmp|opt)\/[a-zA-Z0-9_\/\.\?\*-]{1,100}|(?>O:\d+:"[^"]+":\d+:\{)|rO0AB|\\\\x80\\\\x04\\\\x95/S',
         'lfi'         => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
-        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])order\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x[0-9a-fA-F]+\b|(?<![a-zA-Z0-9_])select(?>[^;]{1,150})from|(?:\|\||&&|(?<![a-zA-Z0-9_])(?:OR|AND|XOR))\s*\(?\s*select\b|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
+        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|(?<![a-zA-Z0-9_])union\s*select|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])order\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x[0-9a-fA-F]+\b|(?<![a-zA-Z0-9_])select[^;]{1,150}?from|(?:\|\||&&|(?<![a-zA-Z0-9_])(?:OR|AND|XOR))\s*\(?\s*select\b|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
         'xss'         => '/(?i)(?><\s*\/?\s*(?:script|svg|math|iframe|object|embed|applet|frame|frameset))|\bon[a-z]{3,20}\s*=|(?>\bjavascript\s*:)|(?>\bvbscript\s*:)|(?>\blivescript\s*:)|(?>\bdata\s*:\s*(?>text\/html|application\/(?:javascript|x-javascript)|image\/svg))|(?><\s style[^>]*>.*?(?>@import|expression\s*\(|behavior\s*:|javascript\s*:))|(?><\s*link[^>]+(?>rel\s*=\s*["\']?stylesheet["\']?[^>]+href\s*=\s*["\']?\s*(?>javascript|data):))|(?>srcdoc\s*=\s*["\']?[^"\']*<\s*script)|(?>formaction\s*=\s*["\']?\s*javascript\s*:)|(?><\s*(?>animate|set)[^>]+(?>values|to|from|by)\s*=\s*["\']?\s*javascript\s*:)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\s*\$on\.constructor|\{\{\s*constructor\.constructor|(?>src\s*=\s*["\']?\s*data:[^"\']{20,}base64)/S',
         'ua'          => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan|zgrab|projectdiscovery|nuclei)/S',
         'framework'   => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))|\.(?>env|git|svn)(?>\/|\b)/S',
@@ -142,20 +143,20 @@ class VGTS_Aegis {
         // Layer 0: Strip null bytes and control whitespace
         $normalized = str_replace(["\0", "\r", "\n", "\t"], ' ', $input);
 
-        // Layer 1: URL Decoding (up to 3 nested levels)
+        // Layer 1: URL Decoding (erhöht auf 5 nested levels gegen tiefe Verschachtelungs-Bypasses)
         $loops = 0;
         do {
             $old = $normalized;
             $normalized = urldecode($normalized);
             $loops++;
-        } while ($old !== $normalized && $loops < 3);
+        } while ($old !== $normalized && $loops < 5);
 
         // Layer 2: HTML Entity Decoding
         $normalized = html_entity_decode($normalized, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Layer 3: Unicode Escape Decoding
+        // Layer 3: Unicode Escape Decoding (Hardened für \uXXXX und IIS-style %uXXXX)
         $normalized = preg_replace_callback(
-            '/\\\\u([0-9a-fA-F]{4})/',
+            '/(?:\\\\u|%u)([0-9a-fA-F]{4})/i',
             static function ($m) {
                 try {
                     return mb_convert_encoding(pack('H*', $m[1]), 'UTF-8', 'UCS-2BE');
@@ -188,20 +189,20 @@ class VGTS_Aegis {
         // Layer 0: Strip null bytes and control whitespace
         $normalized = str_replace(["\0", "\r", "\n", "\t"], ' ', $input);
 
-        // Layer 1: URL Decoding (up to 3 nested levels)
+        // Layer 1: URL Decoding (erhöht auf 5 nested levels gegen tiefe Verschachtelungs-Bypasses)
         $loops = 0;
         do {
             $old = $normalized;
             $normalized = urldecode($normalized);
             $loops++;
-        } while ($old !== $normalized && $loops < 3);
+        } while ($old !== $normalized && $loops < 5);
 
         // Layer 2: HTML Entity Decoding
         $normalized = html_entity_decode($normalized, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Layer 3: Unicode Escape Decoding
+        // Layer 3: Unicode Escape Decoding (Hardened für \uXXXX und IIS-style %uXXXX)
         $normalized = preg_replace_callback(
-            '/\\\\u([0-9a-fA-F]{4})/',
+            '/(?:\\\\u|%u)([0-9a-fA-F]{4})/i',
             static function ($m) {
                 try {
                     return mb_convert_encoding(pack('H*', $m[1]), 'UTF-8', 'UCS-2BE');
