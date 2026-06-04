@@ -8,8 +8,12 @@
  * License: AGPLv3
  * Requires PHP: 7.4
  */
+
 declare(strict_types=1);
-if (!defined('ABSPATH')) exit;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 // --- SYSTEM KONSTANTEN ---
 define('VGTS_VERSION', '1.7.0');
@@ -25,10 +29,13 @@ define('VGTS_MANIFEST_FILE', VGTS_VAULT_DIR . '/integrity_matrix.json');
 define('VGTS_TABLE_BANS', 'vgts_apex_bans');
 define('VGTS_TABLE_LOGS', 'vgts_omega_logs');
 
-// --- INTELLIGENT AUTOLOADER ---
+// --- INTELLIGENT & HARDENED AUTOLOADER ---
 spl_autoload_register(function ($class) {
-    if (strpos($class, 'VGTS_') !== 0) return;
+    if (strpos($class, 'VGTS_') !== 0) {
+        return;
+    }
 
+    // Streng definierte Whitelist-Map (Kills any dynamic file inclusion / LFI)
     $map = [
         // Core Logic
         'VGTS_Network'               => 'includes/core/class-vis-network.php',
@@ -55,22 +62,78 @@ spl_autoload_register(function ($class) {
         'VGTS_Compatibility_Manager' => 'includes/compatibility/class-vis-compatibility-manager.php',
     ];
 
-    if (isset($map[$class]) && file_exists(VGTS_PATH . $map[$class])) {
-        require_once VGTS_PATH . $map[$class];
+    if (isset($map[$class])) {
+        $file_path = VGTS_PATH . $map[$class];
+        
+        // Verhindert Directory-Traversal (Doppelte Absicherung)
+        $real_path = realpath($file_path);
+        if ($real_path !== false && strpos($real_path, realpath(VGTS_PATH)) === 0) {
+            require_once $file_path;
+        }
     }
 });
 
-// --- ACTIVATION / SCHEMA ---
+// --- CENTRAL SECURITY GUARD (CSRF & PRIVILEGE PROTECTION) ---
+class VGTS_Security_Guard {
+
+    /**
+     * Prüft AJAX- und Standard-Requests auf CSRF (Nonces) und Administratorrechte.
+     * Schützt vor unbefugten API-Aufrufen und Einstellungsänderungen.
+     */
+    public static function verify_privileges(string $action_nonce, string $capability = 'manage_options'): void {
+        if (!is_user_logged_in()) {
+            wp_die('VISIONGAIATECHNOLOGY SENTINEL: Unauthenticated session blocked.', 'Access Denied', 403);
+        }
+
+        if (!current_user_can($capability)) {
+            wp_die('VISIONGAIATECHNOLOGY SENTINEL: Insufficient administrative privileges.', 'Access Denied', 403);
+        }
+
+        // Suche Nonce in POST, GET oder Request-Header
+        $nonce = $_POST['_wpnonce'] ?? $_GET['_wpnonce'] ?? $_SERVER['HTTP_X_WP_NONCE'] ?? '';
+        if (empty($nonce) || !wp_verify_nonce((string)$nonce, $action_nonce)) {
+            wp_die('VISIONGAIATECHNOLOGY SENTINEL: CSRF Security Token Validation failed. Action rejected.', 'Access Denied', 403);
+        }
+    }
+}
+
+// --- ACTIVATION / SCHEMA (WITH DIRECTORY HARDENING) ---
 register_activation_hook(__FILE__, function() {
     global $wpdb;
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
+    // Erstellung und Härtung des Sicherheits-Tresors
     if (!file_exists(VGTS_VAULT_DIR)) {
         mkdir(VGTS_VAULT_DIR, 0755, true);
-        file_put_contents(VGTS_VAULT_DIR . '/index.php', '<?php // SILENCE IS GOLDEN ?>');
-        file_put_contents(VGTS_VAULT_DIR . '/.htaccess', "Order Deny,Allow\nDeny from all");
     }
 
+    // 1. Silent Guard (Index-Verzeichnisschutz)
+    file_put_contents(VGTS_VAULT_DIR . '/index.php', '<?php // SILENCE IS GOLDEN ?>');
+
+    // 2. Apache Hardening (.htaccess mit Cross-Version Support)
+    $htaccess_rules = "<Files *>\n" .
+                      "    <IfModule mod_authz_core.c>\n" .
+                      "        Require all denied\n" .
+                      "    </IfModule>\n" .
+                      "    <IfModule !mod_authz_core.c>\n" .
+                      "        Order Deny,Allow\n" .
+                      "        Deny from all\n" .
+                      "    </IfModule>\n" .
+                      "</Files>";
+    file_put_contents(VGTS_VAULT_DIR . '/.htaccess', $htaccess_rules);
+
+    // 3. IIS Hardening (web.config Schutz gegen Datei-Auslesung auf Windows-Servern)
+    $iis_config = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" .
+                  '<configuration>' . "\n" .
+                  '  <system.webServer>' . "\n" .
+                  '    <authorization>' . "\n" .
+                  '      <deny users="*" />' . "\n" .
+                  '    </authorization>' . "\n" .
+                  '  </system.webServer>' . "\n" .
+                  '</configuration>';
+    file_put_contents(VGTS_VAULT_DIR . '/web.config', $iis_config);
+
+    // Datenbanktabellen initialisieren
     $charset_collate = $wpdb->get_charset_collate();
     
     $sql_bans = "CREATE TABLE " . $wpdb->prefix . VGTS_TABLE_BANS . " (
@@ -107,6 +170,32 @@ register_deactivation_hook(__FILE__, function() {
     flush_rewrite_rules();
 });
 
+// --- DEFENSE-IN-DEPTH: GLOBAL CONFIGURATION SAFEGUARD (CSRF SHIELD) ---
+/**
+ * Verhindert, dass unbefugte Dritte oder CSRF-Vektoren die globale Konfiguration 
+ * des WAF-Systems manipulieren. Agiert als systemweiter Virtual Patching Filter.
+ */
+add_filter('pre_update_option_vgts_config', function($new_value, $old_value, $option) {
+    $is_admin_action = is_admin() || (defined('DOING_AJAX') && DOING_AJAX) || (defined('REST_REQUEST') && REST_REQUEST);
+
+    if ($is_admin_action) {
+        // Erfordert administrative Berechtigungen und gültiges Nonce
+        if (!current_user_can('manage_options')) {
+            wp_die('VISIONGAIATECHNOLOGY SENTINEL: Unauthorized attempt to modify secure core settings.', 'Access Denied', 403);
+        }
+
+        // Prüfe Nonce auf Einstellungsseiten
+        $nonce = $_POST['_wpnonce'] ?? $_GET['_wpnonce'] ?? $_SERVER['HTTP_X_WP_NONCE'] ?? '';
+        if (empty($nonce) || !wp_verify_nonce((string)$nonce, 'vgts_secure_settings_update')) {
+            // Fallback auf WordPress-Standard-Einstellungs-Nonce
+            if (!wp_verify_nonce((string)$nonce, 'vgts_config-options') && !wp_verify_nonce((string)$nonce, 'options-options')) {
+                wp_die('VISIONGAIATECHNOLOGY SENTINEL: Security update blocked. Missing or invalid secure CSRF Nonce.', 'Access Denied', 403);
+            }
+        }
+    }
+    return $new_value;
+}, 10, 3);
+
 // --- BOOTSTRAP (VGT KERNEL PRIORITY QUEUE) ---
 add_action('plugins_loaded', function() {
     
@@ -126,7 +215,7 @@ add_action('plugins_loaded', function() {
     // TIER 3: SECONDARY SECURITY MODULES & ENGINE FUSION
     // ==========================================
     new VGTS_Titan($options);
-    new VGTS_Hades($options);
+    $hades = new VGTS_Hades($options);
     new VGTS_Styx_Lite($options);
     new VGTS_Airlock();
     new VGTS_Ghost_Trap();
