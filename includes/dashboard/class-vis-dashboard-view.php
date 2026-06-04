@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 class VGTS_Dashboard_View {
     
     /**
-     * @return array[] Die Tab-Definitionen mit lokalisierten Labels.
+     * @return array[] Die Tab-Definitionen mit lokalisierten Labels (Alle 15 Module).
      */
     private function get_tabs(): array {
         return [
@@ -98,7 +98,7 @@ class VGTS_Dashboard_View {
             echo '</form>';
         }
         
-        echo '</main></div>';
+        echo '</form></main></div>';
     }
 
     /**
