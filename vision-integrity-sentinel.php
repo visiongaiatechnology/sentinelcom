@@ -179,18 +179,47 @@ add_filter('pre_update_option_vgts_config', function($new_value, $old_value, $op
     $is_admin_action = is_admin() || (defined('DOING_AJAX') && DOING_AJAX) || (defined('REST_REQUEST') && REST_REQUEST);
 
     if ($is_admin_action) {
-        // Erfordert administrative Berechtigungen und gültiges Nonce
+        // Erfordert administrative Berechtigungen
         if (!current_user_can('manage_options')) {
             wp_die('VISIONGAIATECHNOLOGY SENTINEL: Unauthorized attempt to modify secure core settings.', 'Access Denied', 403);
         }
 
-        // Prüfe Nonce auf Einstellungsseiten
         $nonce = $_POST['_wpnonce'] ?? $_GET['_wpnonce'] ?? $_SERVER['HTTP_X_WP_NONCE'] ?? '';
-        if (empty($nonce) || !wp_verify_nonce((string)$nonce, 'vgts_secure_settings_update')) {
-            // Fallback auf WordPress-Standard-Einstellungs-Nonce
-            if (!wp_verify_nonce((string)$nonce, 'vgts_config-options') && !wp_verify_nonce((string)$nonce, 'options-options')) {
-                wp_die('VISIONGAIATECHNOLOGY SENTINEL: Security update blocked. Missing or invalid secure CSRF Nonce.', 'Access Denied', 403);
+        $nonce_valid = false;
+
+        if (!empty($nonce)) {
+            // 1. DYNAMISCHES RESOLVING: Prüfe, ob das Nonce zur aktuell gesendeten WP-Einstellungs-Gruppe passt
+            if (isset($_POST['option_page'])) {
+                $dynamic_action = sanitize_key($_POST['option_page']) . '-options';
+                if (wp_verify_nonce((string)$nonce, $dynamic_action)) {
+                    $nonce_valid = true;
+                }
             }
+
+            // 2. STATISCHER VERIFIER: Fallbacks für AJAX, Custom Pages und direkte POST-Aktionen
+            if (!$nonce_valid) {
+                $explicit_actions = [
+                    'vgts_secure_settings_update',
+                    'vgts_config-options',
+                    'vgts_config_group-options',
+                    'vgts_option_group-options',
+                    'vgts_settings-options',
+                    'vgts_settings_group-options',
+                    'options-options',
+                    'update-options'
+                ];
+                foreach ($explicit_actions as $action) {
+                    if (wp_verify_nonce((string)$nonce, $action)) {
+                        $nonce_valid = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Falls das Nonce auf keinem der Kanäle verifiziert werden konnte -> Blockade!
+        if (!$nonce_valid) {
+            wp_die('VISIONGAIATECHNOLOGY SENTINEL: Security update blocked. Missing or invalid secure CSRF Nonce.', 'Access Denied', 403);
         }
     }
     return $new_value;
