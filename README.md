@@ -1,7 +1,7 @@
 # ⚔️ VGT Sentinel — Community Edition (Silber Status)
 
 [![License](https://img.shields.io/badge/License-AGPLv3-green?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.6.0-brightgreen?style=for-the-badge)](#)
+[![Version](https://img.shields.io/badge/Version-1.7.0-brightgreen?style=for-the-badge)](#)
 [![Platform](https://img.shields.io/badge/Platform-WordPress-21759B?style=for-the-badge&logo=wordpress)](#)
 [![Architecture](https://img.shields.io/badge/Architecture-Zero--Trust_WAF-red?style=for-the-badge)](#)
 [![Engine](https://img.shields.io/badge/Engine-Deterministic_DFA-orange?style=for-the-badge)](#)
@@ -26,20 +26,175 @@ Found a vulnerability or have an improvement? **Open an issue or contact us.**
 
 ---
 
-## 📋 Changelog — V1.6.1
 
-- **Bug Fix: ANTIBOT** - Fixed Syntax Parse Errors (Trailing Braces)
-- Removed illegal trailing closing braces (}) at the bottom of both vis-antibot-worker.js and vis-antibot-engine.js that caused an immediate browser-level crash (Uncaught SyntaxError: Unexpected token '}').
-- Resolved Async Form Submission Block (User-Trust Loss)
-- Switched from programmatic btn.click() inside an async/awaited scope to bypassing the browser's untrusted action filters.
-- The engine now intercepts the submit event, dynamically appends the submit button's name and value as hidden input elements (preventing WordPress from losing track of which button triggered the request), and securely dispatches the form - using the native HTMLFormElement.prototype.submit.call(form).
-- Hardened Web Worker Sandbox Fallback
-- Added a strict try-catch wrapper around the Worker constructor. If a browser blocks the Web Worker due to restrictive Content Security Policies (CSP), Sandbox constraints, or CORS-issues, the engine instantly and silently falls back to synchronous main-thread mining without hanging or throwing errors.
-- Secured Fetch Interceptors for GET/HEAD Requests
-- Optimized the Fetch hijacking layer to bypass cloning/injecting bodies for GET and HEAD requests, strictly adhering to the W3C spec and preventing TypeError aborts on AJAX routines.
+## 📋 Changelog — V1.7.0
 
-- **PHP 8.# Fix: HADES MODUL** — Added type, empty string, and existence checks (file_exists) for the 404 template to prevent the fatal ValueError: Path cannot be empty.
-Cascading Fallback System: If no 404 template exists in the active theme, the code now safely falls back to the theme's index.php, or as a last resort, to a clean wp_die().
+### 🚀 Major Upgrade: AEGIS WAF Engine Reworked
+
+VGT Sentinel 1.7.0 introduces the largest overhaul of the AEGIS engine since the Community Edition launch. The WAF now uses a multi-stage anomaly-scoring architecture with cryptographic browser verification, dramatically reducing false positives while improving detection of heavily obfuscated attacks.
+
+#### 🧠 Anomaly Scoring Engine
+
+* Replaced immediate regex-based blocking with weighted anomaly scoring.
+* Every signature now contributes a configurable threat score.
+* Requests are blocked only after exceeding the configured `threshold_block` value.
+* Example:
+
+  * `sqli` = 5 points
+  * `xss` = 5 points
+  * `rce` = 100 points
+
+**Benefit:** Benign content containing technical keywords no longer triggers immediate visitor lockouts.
+
+---
+
+#### 🔐 Cryptographic JavaScript Challenge
+
+* Added browser verification layer for medium-confidence detections.
+* Requests exceeding `threshold_challenge` receive a JavaScript challenge page.
+* Successful browsers receive a signed trust cookie (24h validity).
+* Low and medium severity detections are automatically relaxed for verified browsers.
+
+**Benefit:** Headless bots and scrapers fail automatically while legitimate users experience only a one-time verification step.
+
+---
+
+#### 👨‍💻 Administrator & Editor Relaxation
+
+* Logged-in users with:
+
+  * `edit_posts`
+  * `manage_options`
+
+  automatically bypass low-risk signatures.
+
+* Weights reduced to zero for:
+
+  * SQLi heuristics
+  * XSS heuristics
+  * Recon probes
+  * Direct DB references
+  * GraphQL reconnaissance
+
+* Critical exploit classes remain enforced:
+
+  * RCE
+  * LFI
+  * Command Injection
+
+**Benefit:** Content editors can safely work with code snippets, HTML fragments and technical content.
+
+---
+
+#### 🛒 Context-Aware WooCommerce & Gutenberg Protection
+
+WooCommerce:
+
+* Sensitive checkout fields are excluded from inspection:
+
+  * billing_company
+  * shipping_company
+  * related business fields
+
+Gutenberg:
+
+* Post editing and REST save operations automatically increase challenge/block thresholds.
+* Applies to:
+
+  * `/wp-json/wp/v2/posts`
+  * `post.php`
+
+**Benefit:** Eliminates false positives during checkout and content publishing.
+
+---
+
+#### 🔬 Enhanced Payload Normalization
+
+Normalization pipeline upgraded:
+
+* Up to 5 recursive URL decode passes
+* IIS Unicode `%uXXXX` support
+* Improved nested encoding detection
+
+**Benefit:** Detects deeply obfuscated payloads and multi-stage encoding bypass attempts.
+
+---
+
+#### ✂️ Intelligent SQL Comment Reconstruction
+
+New lookaround-based comment processing:
+
+* `sel/**/ect` → `select`
+* `select/**/1` → `select 1`
+
+**Benefit:** Closes classic SQL comment evasion techniques without breaking syntax reconstruction.
+
+---
+
+#### ⚡ Atomic Signature Refactoring
+
+Large monolithic patterns were split into dedicated detection classes:
+
+Examples:
+
+* `rce_eval`
+* `rce_callbacks`
+* `rce_backticks`
+* `rce_jndi_env`
+* `sqli_union`
+* `sqli_select`
+* `xss_script_tags`
+* `xss_event_handlers`
+
+**Benefits:**
+
+* Faster matching
+* Better logging
+* Lower ReDoS exposure
+* Improved diagnostics
+
+---
+
+#### 🏗️ Two-Stage Detection Pipeline
+
+Detection workflow redesigned:
+
+Stage 1:
+
+* Atomic kill signatures
+* Immediate critical exploit detection
+
+Stage 2:
+
+* Heuristic scoring
+* AI delegation hooks
+* Nexus pattern analysis
+
+**Benefit:** Critical attacks are terminated instantly while reducing CPU usage for normal traffic.
+
+---
+
+#### 🛡️ Hardened Proxy Spoofing Detection
+
+* Added RFC-compliant private and loopback validation.
+* Local sockets automatically bypass spoofing checks.
+* Improved compatibility with reverse proxies and development environments.
+
+**Benefit:** Eliminates false positives caused by internal infrastructure.
+
+---
+
+#### 🎨 Improved Challenge UX
+
+New browser verification interface includes:
+
+* Responsive layout
+* Corporate branding
+* Progress animations
+* Mathematical CPU challenge
+
+**Benefit:** Visitors receive clear feedback instead of a generic HTTP 403 response.
+
 
 ---
 
