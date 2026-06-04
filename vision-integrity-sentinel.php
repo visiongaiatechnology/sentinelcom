@@ -199,6 +199,7 @@ add_filter('pre_update_option_vgts_config', function($new_value, $old_value, $op
             // 2. STATISCHER VERIFIER: Fallbacks für AJAX, Custom Pages und direkte POST-Aktionen
             if (!$nonce_valid) {
                 $explicit_actions = [
+                    'vgts_save_config', // <--- KRITISCH: Erlaubt das Speichern über dein Custom Dashboard!
                     'vgts_secure_settings_update',
                     'vgts_config-options',
                     'vgts_config_group-options',
