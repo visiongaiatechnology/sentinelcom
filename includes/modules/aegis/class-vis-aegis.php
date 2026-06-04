@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) {
  * - Multi-Byte Boundary-Safe Stream Inspection mit optimierter I/O und GC.
  * - [ V2 UPGRADE ]: Extended Payload Normalizer (Layers 0-5) & Hardened Signatures.
  * - [ V2.1 HOTFIX ]: Path Isolation, DNS Boundary Guards & Recursive Key Inspection.
+ * - [ V2.2 HARDENING ]: Mutated Multipass Normalization & Strict Local-Socket Whitelisting.
  */
 class VGTS_Aegis {
 
@@ -28,19 +29,19 @@ class VGTS_Aegis {
     private array $whitelist_ips = [];
     private array $whitelist_uas = [];
 
-    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen (V2 Patterns inline-compiled)
+    // VGT SUPREME REGEX: Gehärtet gegen ReDoS, optimiert mit atomaren Gruppen (V2.2 gehärtet & inline-kompiliert)
     private array $patterns = [
-        'rce'         => '/(?i)(?<![a-zA-Z0-9_])(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load|preg_replace_callback|array_map|array_filter|array_walk|usort|uksort|register_shutdown_function|register_tick_function|invokefunction|invokeargs|setTimeout|setInterval|Function)\s*[\(\[]|`[^`]{1,255}`|\$\{(?>jndi|env|sys|lower|upper):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&|`)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir|powershell|certutil|bitsadmin|rundll32)|(?>O:\d+:"[^"]+":\d+:\{)|rO0AB|\\\\x80\\\\x04\\\\x95/S',
+        'rce'         => '/(?i)(?<![a-zA-Z0-9_])(?>system|exec|passthru|shell_exec|eval|proc_open|assert|phpinfo|pcntl_exec|popen|create_function|call_user_func(?:_array)?|putenv|mail|dl|ffi_load|preg_replace_callback|array_map|array_filter|array_walk|usort|uksort|register_shutdown_function|register_tick_function|invokefunction|invokeargs|setTimeout|setInterval|Function)\s*[\(\[]|`[^`]{1,255}`|\$\{(?>jndi|env|sys|lower|upper):[^\}]+\}|\$\([^)]+\)|(?:\(\)\s*\{\s*:;\s*\}\s*;)|(?:;|\|\||\||&&|`)\s*(?>whoami|net\s+user|id|cat|ls|pwd|wget|curl|nc|bash|sh|ping|type|dir|powershell|certutil|bitsadmin|rundll32)|\bcat\b|\bwhoami\b|\bid\b|\buname\b|\bexec\b|\bpassthru\b|\bsystem\b|\bshell_exec\b|\/(?>bin|usr|etc|var|tmp|opt)\/[a-zA-Z0-9_\/\.\?\*-]{1,100}|(?>O:\d+:"[^"]+":\d+:\{)|rO0AB|\\\\x80\\\\x04\\\\x95/S',
         'lfi'         => '/(?i)(?>\.\.[\/\\\\])|(?>\/etc\/(?>passwd|shadow|hosts|group|issue))|(?>c:\\\\(?>windows|winnt))|(?>\bboot\.ini\b)|(?>wp-config\.php)|(?>php:\/\/(?>filter|input|temp|memory))|(?>\b(?>zip|phar|data|expect|input|glob|ssh2):\/\/)|(?>\/proc\/(?>self|version|cmdline|environ))|(?>\/var\/log\/(?>nginx|apache2|access|error))|%00/S',
-        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])(?>order|group)\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
-        'xss'         => '/(?i)(?><\s*\/?\s*(?:script|svg|math|iframe|object|embed|applet|frame|frameset))|\bon[a-z]{3,20}\s*=|(?>\bjavascript\s*:)|(?>\bvbscript\s*:)|(?>\blivescript\s*:)|(?>\bdata\s*:\s*(?>text\/html|application\/(?:javascript|x-javascript)|image\/svg))|(?><\s*style[^>]*>.*?(?>@import|expression\s*\(|behavior\s*:|javascript\s*:))|(?><\s*link[^>]+(?>rel\s*=\s*["\']?stylesheet["\']?[^>]+href\s*=\s*["\']?\s*(?>javascript|data):))|(?>srcdoc\s*=\s*["\']?[^"\']*<\s*script)|(?>formaction\s*=\s*["\']?\s*javascript\s*:)|(?><\s*(?>animate|set)[^>]+(?>values|to|from|by)\s*=\s*["\']?\s*javascript\s*:)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\s*\$on\.constructor|\{\{\s*constructor\.constructor|(?>src\s*=\s*["\']?\s*data:[^"\']{20,}base64)/S',
+        'sqli'        => '/(?i)(?>u[\W_]*n[\W_]*i[\W_]*o[\W_]*n(?:[\W_]+|\/\*!?\d*\*\/)+s[\W_]*e[\W_]*l[\W_]*e[\W_]*c[\W_]*t)|information_schema\.|pg_catalog\.|sys\.databases|mysql\.user|waitfor[\W_]+delay|pg_sleep\s*\(|dbms_pipe\.receive_message|sleep\s*\(\s*\d+\s*\)|(?<![a-zA-Z0-9_])(?>benchmark|extractvalue|updatexml|exp|gtid_subset|hex|unhex|concat_ws|group_concat|load_file|into\s+outfile|into\s+dumpfile)\s*\(|(?<![a-zA-Z0-9_])(?>OR|AND|XOR)(?![a-zA-Z0-9_])[^a-zA-Z0-9_]{0,3}[\d\'"`][^=<>]{0,5}(?>=|>|<|<=|>=|<>|!=|LIKE|RLIKE|REGEXP)[^a-zA-Z0-9_]{0,3}[\d\'"`]|(?<![a-zA-Z0-9_])(?>OR|AND)\s+\d+\s*=\s*\d+\s*(?>--|#|\/\*)|;\s*(?>drop|delete|truncate|alter|create|exec|execute)\s+(?>table|database|user|procedure|function)|(?>\{oj\s+|\{call\s+)|(?>\$(?>where|ne|regex|gt|gte|lt|lte|in|nin|exists|expr|and|or|not|nor|all|elemMatch|size|mod|type)(?:"|\')?\s*:)|(?>xp_cmdshell|sp_executesql|sp_oacreate)|(?<![a-zA-Z0-9_])order\s+by\s+\d+(?>\s*,\s*\d+){2,}|(?:--[ \+\t]+\w|#\s*\w|\/\*!\d{5})|(?<![a-zA-Z0-9_])0x[0-9a-fA-F]+\b|(?<![a-zA-Z0-9_])select(?>[^;]{1,150})from|(?:\|\||&&|(?<![a-zA-Z0-9_])(?:OR|AND|XOR))\s*\(?\s*select\b|(?<![a-zA-Z0-9_])0x(?>73656c656374|756e696f6e|64726f70|696e7365727420696e746f)/S',
+        'xss'         => '/(?i)(?><\s*\/?\s*(?:script|svg|math|iframe|object|embed|applet|frame|frameset))|\bon[a-z]{3,20}\s*=|(?>\bjavascript\s*:)|(?>\bvbscript\s*:)|(?>\blivescript\s*:)|(?>\bdata\s*:\s*(?>text\/html|application\/(?:javascript|x-javascript)|image\/svg))|(?><\s style[^>]*>.*?(?>@import|expression\s*\(|behavior\s*:|javascript\s*:))|(?><\s*link[^>]+(?>rel\s*=\s*["\']?stylesheet["\']?[^>]+href\s*=\s*["\']?\s*(?>javascript|data):))|(?>srcdoc\s*=\s*["\']?[^"\']*<\s*script)|(?>formaction\s*=\s*["\']?\s*javascript\s*:)|(?><\s*(?>animate|set)[^>]+(?>values|to|from|by)\s*=\s*["\']?\s*javascript\s*:)|%ef%bc%9c|＜|\\\\uFF1C|%c0%bc|\{\{\s*\$on\.constructor|\{\{\s*constructor\.constructor|(?>src\s*=\s*["\']?\s*data:[^"\']{20,}base64)/S',
         'ua'          => '/(?i)\b(?>sqlmap|nikto|wpscan|python|curl|wget|libwww|jndi|masscan|havij|netsparker|burp|nmap|shellshock|headless|selenium|gobuster|dirbuster|shodan|zgrab|projectdiscovery|nuclei)/S',
         'framework'   => '/(?i)(?>\b(?>wp_set_current_user|wp_insert_user|wp_update_user)\b)|(?>update_option\s*\(\s*[\'"](?>siteurl|home|users_can_register|default_role)[\'"])|eval-stdin|_ignition\/execute-solution|telescope\/requests|api\/swagger|actuator\/(?>env|refresh|restart|heapdump)|(?>__(?>schema|type)\s*(?>\{|\(|:))|\.(?>env|git|svn)(?>\/|\b)/S',
         'db_direct'   => '/(?i)\$wpdb->|(?>\b(?>mysql_query|mysqli_query|pg_query|sqlite_query|PDO::exec)\b)/S',
         'gql_recon'   => '/(?i)(?>__(?>schema|type)\s*(?>\{|\(|:))/S',
         'rce_source_hijack'  => '/(?i)(?>action|data|plugin)[^&]*?(?>source|url|install|path)[^&]*?=(?>https?%3A%2F%2F|https?:\/\/|ftps?%3A%2F%2F|%68%74%74%70|%48%54%54%50)/S',
         'array_bypass'=> '/(?i)(?>\b[a-z0-9_]+(?:\[|%5B)[a-z0-9_\'"%]*?(?:\]|%5D)\s*=(?>\s|%20)*(?>system|exec|shell_exec|eval|assert|passthru|popen|proc_open|pcntl_exec|phpinfo))/S',
-        'probes'        => '/(?i)(?>\.(?>env|git|htaccess|php_bak|old|bak|sql|tar\.gz|zip|remote-sync|ds_store|idea|vscode))|config\.php|wp-config\.php|\.aws\/credentials|vendor\/phpunit|composer\.json|phpunit\/src|\/\.well-known\/security|\/\.svn\/|\/\.hg\/|\/web\.config|\/\.user\.ini|\/telescope\/|\/horizon\/|\/_profiler\//S',
+        'probes'      => '/(?i)(?>\.(?>env|git|htaccess|php_bak|old|bak|sql|tar\.gz|zip|remote-sync|ds_store|idea|vscode))|config\.php|wp-config\.php|\.aws\/credentials|vendor\/phpunit|composer\.json|phpunit\/src|\/\.well-known\/security|\/\.svn\/|\/\.hg\/|\/web\.config|\/\.user\.ini|\/telescope\/|\/horizon\/|\/_profiler\//S',
     ];
 
     public function __construct(array $options) {
@@ -53,8 +54,7 @@ class VGTS_Aegis {
         $this->whitelist_ips = array_filter(array_map('trim', explode("\n", $raw_ips)));
         $this->whitelist_uas = array_filter(array_map('trim', explode("\n", $raw_uas)));
 
-        // VGT DRY KERNEL: Zentralisierte IP Resolution + Strict Sanitization
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated via IP-Pattern inside resolve_true_ip or cast
+        // IP-Resolution
         $raw_ip = class_exists('VGTS_Network') && method_exists('VGTS_Network', 'resolve_true_ip') 
                   ? VGTS_Network::resolve_true_ip() 
                   : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
@@ -86,10 +86,16 @@ class VGTS_Aegis {
         $this->inspect_headers();
         $this->inspect_uri();
 
-        // VGT Baseline: GET, POST und COOKIE iterativ prüfen (Read-Only Analysis)
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WAF Inspektion, kein State Change
+        // 1. DEEP QUERY STRING INSPECTION (Killed Parameter Pollution / HPP)
+        $raw_query = $_SERVER['QUERY_STRING'] ?? '';
+        if ($raw_query !== '') {
+            $this->scan_value_mutations($raw_query, 'query_string');
+        }
+
+        // 2. REKURSIVER MULTI-PASS SCAN
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if (!empty($_GET)) $this->recursive_array_scan($_GET, 'GET');
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WAF Inspektion, kein State Change
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing
         if (!empty($_POST)) $this->recursive_array_scan($_POST, 'POST');
         if (!empty($_COOKIE)) $this->recursive_array_scan($_COOKIE, 'COOKIE');
 
@@ -110,14 +116,33 @@ class VGTS_Aegis {
     }
 
     /**
-     * VGT OPEN SOURCE: Extended Recursive Normalization
-     * Decodes the four encoding layers attackers use to bypass regex inspection.
+     * VGT KERNEL DEEP SCAN MUTATIONS PIPELINE (Multi-Pass Normalizer)
+     * Scannt den Input parallel gegen vier verschiedene Dekodierungs- und Stripping-Zustände.
+     * Dies neutralisiert jegliche Form von Quote-Slicing, Kommentar-Splitting und Unicode-Smuggling.
+     */
+    private function scan_value_mutations(string $value, string $context): void {
+        $normalized = $this->normalize_payload($value);
+        $normalized_stripped = $this->normalize_payload_stripped($value);
+        $normalized_no_quotes = str_replace(["'", '"', '`'], '', $normalized);
+        $normalized_stripped_no_quotes = str_replace(["'", '"', '`'], '', $normalized_stripped);
+
+        foreach ($this->patterns as $type => $regex) {
+            if ($type === 'ua') continue;
+            $this->match_pattern($regex, $normalized, $type . '_' . $context);
+            $this->match_pattern($regex, $normalized_stripped, $type . '_' . $context . '_stripped');
+            $this->match_pattern($regex, $normalized_no_quotes, $type . '_' . $context . '_no_quotes');
+            $this->match_pattern($regex, $normalized_stripped_no_quotes, $type . '_' . $context . '_stripped_no_quotes');
+        }
+    }
+
+    /**
+     * VGT OPEN SOURCE: Extended Recursive Normalization (Layer-Space Comments)
      */
     private function normalize_payload(string $input): string {
         // Layer 0: Strip null bytes and control whitespace
         $normalized = str_replace(["\0", "\r", "\n", "\t"], ' ', $input);
 
-        // Layer 1: URL Decoding (existing — up to 3 nested levels)
+        // Layer 1: URL Decoding (up to 3 nested levels)
         $loops = 0;
         do {
             $old = $normalized;
@@ -150,8 +175,54 @@ class VGTS_Aegis {
             $normalized
         ) ?? $normalized;
 
-        // Layer 5: Comment stripping — FAIL-CLOSED instead of fail-open (?? '')
+        // Layer 5: Comment stripping to spaces (preserves syntax spacing)
         $normalized = preg_replace('/(?:\/\*.*?\*\/|<!\-\-.*?\-\->|--[\s\r\n]|#.*$)/sm', ' ', $normalized) ?? '';
+
+        return $normalized;
+    }
+
+    /**
+     * VGT OPEN SOURCE: Extended Recursive Normalization (Word-Space Comment Slicing Defeater)
+     */
+    private function normalize_payload_stripped(string $input): string {
+        // Layer 0: Strip null bytes and control whitespace
+        $normalized = str_replace(["\0", "\r", "\n", "\t"], ' ', $input);
+
+        // Layer 1: URL Decoding (up to 3 nested levels)
+        $loops = 0;
+        do {
+            $old = $normalized;
+            $normalized = urldecode($normalized);
+            $loops++;
+        } while ($old !== $normalized && $loops < 3);
+
+        // Layer 2: HTML Entity Decoding
+        $normalized = html_entity_decode($normalized, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Layer 3: Unicode Escape Decoding
+        $normalized = preg_replace_callback(
+            '/\\\\u([0-9a-fA-F]{4})/',
+            static function ($m) {
+                try {
+                    return mb_convert_encoding(pack('H*', $m[1]), 'UTF-8', 'UCS-2BE');
+                } catch (\Throwable) {
+                    return '';
+                }
+            },
+            $normalized
+        ) ?? $normalized;
+
+        // Layer 4: Hex Escape Decoding
+        $normalized = preg_replace_callback(
+            '/\\\\x([0-9a-fA-F]{2})/',
+            static function ($m) {
+                return chr(hexdec($m[1]));
+            },
+            $normalized
+        ) ?? $normalized;
+
+        // Layer 5: Comment stripping to completely empty string (merges split keywords e.g. sel/**/ect -> select)
+        $normalized = preg_replace('/(?:\/\*.*?\*\/|<!\-\-.*?\-\->|--[\s\r\n]|#.*$)/sm', '', $normalized) ?? '';
 
         return $normalized;
     }
@@ -171,17 +242,11 @@ class VGTS_Aegis {
             if (!is_array($fileInfo)) continue;
 
             if (isset($fileInfo['tmp_name']) && is_string($fileInfo['tmp_name'])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw tmp path needed for fread
                 $this->scan_file_head_only($fileInfo['tmp_name']);
                 
                 if (isset($fileInfo['name']) && is_string($fileInfo['name'])) {
-                    // Strippen, damit XSS Payloads im Namen gescannt werden können.
                     $raw_name = wp_unslash($fileInfo['name']);
-                    $norm_name = $this->normalize_payload($raw_name);
-                    foreach ($this->patterns as $type => $regex) {
-                        if ($type === 'ua') continue;
-                        $this->match_pattern($regex, $norm_name, $type . '_file_name');
-                    }
+                    $this->scan_value_mutations($raw_name, 'file_name');
                 }
             } elseif (isset($fileInfo['tmp_name']) && is_array($fileInfo['tmp_name'])) {
                 foreach ($fileInfo['tmp_name'] as $idx => $tmp_path) {
@@ -189,11 +254,7 @@ class VGTS_Aegis {
                         $this->scan_file_head_only($tmp_path);
                         $name = $fileInfo['name'][$idx] ?? '';
                         if (is_string($name)) {
-                            $norm_name = $this->normalize_payload(wp_unslash($name));
-                            foreach ($this->patterns as $type => $regex) {
-                                if ($type === 'ua') continue;
-                                $this->match_pattern($regex, $norm_name, $type . '_file_name');
-                            }
+                            $this->scan_value_mutations(wp_unslash($name), 'file_name');
                         }
                     }
                 }
@@ -222,20 +283,13 @@ class VGTS_Aegis {
         }
 
         try {
-            // Note: json_decode transforms string. We scan the raw output recursively, bypassing the WP.org warning context.
             $parsed_json = json_decode((string) $raw_body, true, 512, JSON_THROW_ON_ERROR);
             if (is_array($parsed_json)) {
                 $this->recursive_array_scan($parsed_json, 'JSON');
             }
         } catch (JsonException $e) {
-            $normalized_raw = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
-                return mb_convert_encoding(pack('H*', $matches[1]), 'UTF-8', 'UCS-2BE');
-            }, (string) $raw_body);
-
-            foreach ($this->patterns as $type => $regex) {
-                if ($type === 'ua') continue;
-                $this->match_pattern($regex, (string)$normalized_raw, $type . '_json_raw_fallback');
-            }
+            // Fallback Raw Stream Scan
+            $this->scan_value_mutations((string) $raw_body, 'json_raw_fallback');
         }
         
         unset($raw_body);
@@ -244,23 +298,13 @@ class VGTS_Aegis {
     private function recursive_array_scan(array $data, string $context = 'DATA'): void {
         foreach ($data as $key => $value) {
             if (is_string($key)) {
-                $norm_key = $this->normalize_payload($key);
-                foreach ($this->patterns as $type => $regex) {
-                    if ($type === 'ua') continue;
-                    $this->match_pattern($regex, $norm_key, $type . '_' . strtolower($context) . '_key');
-                }
+                $this->scan_value_mutations($key, strtolower($context) . '_key');
             }
 
             if (is_array($value)) {
                 $this->recursive_array_scan($value, $context);
             } elseif (is_string($value)) {
-                // WAF Inspection benötigt raw strings (wp_unslash entfernt Quotes, was bei SQLi Prüfung hinderlich sein kann, aber für WP.org gefordert.
-                // Da Aegis ein dedizierter Scanner ist, lesen wir Raw-Daten über normalize_payload.
-                $normalized = $this->normalize_payload((string) $value);
-                foreach ($this->patterns as $type => $regex) {
-                    if ($type === 'ua') continue;
-                    $this->match_pattern($regex, $normalized, $type . '_' . strtolower($context));
-                }
+                $this->scan_value_mutations((string) $value, strtolower($context));
             }
         }
     }
@@ -290,24 +334,28 @@ class VGTS_Aegis {
             $scanned_bytes += strlen($chunk);
             $raw_payload = $overlap_buffer . $chunk;
             
-            $decoded_payload = $this->normalize_payload($raw_payload);
-
-            foreach ($this->patterns as $type => $regex) {
-                if ($type === 'ua') continue;
-                $this->match_pattern($regex, $decoded_payload, $type . '_body');
-            }
+            $this->scan_value_mutations($raw_payload, 'body');
 
             $overlap_buffer = substr($raw_payload, -256);
             
-            unset($decoded_payload, $raw_payload, $chunk);
+            unset($raw_payload, $chunk);
         }
 
         fclose($handle);
         unset($overlap_buffer); 
     }
 
+    private static function detect_proxy_spoofing(string $value): bool {
+        $forbidden_ranges = ['127.0.0.1', 'localhost', '10.', '192.168.', '172.16.', '::1', 'fe80::1'];
+        foreach ($forbidden_ranges as $range) {
+            if (stripos($value, $range) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function inspect_headers(): void {
-        // [WP.ORG COMPLIANCE]: Strict Sanitization for Headers via wp_unslash and sanitize_text_field
         $ua  = sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'] ?? ''));
         $ref = sanitize_text_field(wp_unslash($_SERVER['HTTP_REFERER'] ?? ''));
         $method = sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'] ?? ''));
@@ -326,7 +374,6 @@ class VGTS_Aegis {
 
         foreach ($critical_headers as $key) {
             if (isset($_SERVER[$key]) && is_string($_SERVER[$key])) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- We sanitize right here
                 $headers_to_scan[] = wp_unslash($_SERVER[$key]);
             }
         }
@@ -346,24 +393,18 @@ class VGTS_Aegis {
         foreach ($headers_to_scan as $header_val) {
             if ($header_val === '') continue;
             
-            // Raw WAF Inspection (Decoded via normalize_payload)
-            $decoded = $this->normalize_payload((string) $header_val);
-            foreach ($this->patterns as $type => $regex) {
-                $this->match_pattern($regex, $decoded, $type . '_header');
+            // FCrDNS proxy spoofing boundary guard
+            if (self::detect_proxy_spoofing((string)$header_val)) {
+                $this->terminate("Proxy Spoofing detected in header.", 'BLOCK', 'proxy_spoofing');
             }
+
+            $this->scan_value_mutations((string) $header_val, 'header');
         }
     }
 
     private function inspect_uri(): void {
-        // [WP.ORG COMPLIANCE]: Sanitize URI. Note: esc_url_raw might break raw payload inspection, so we use string cast & wp_unslash for raw analysis.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw Request URI needed for accurate WAF inspection
         $raw_uri = (string) wp_unslash($_SERVER['REQUEST_URI'] ?? '');
-        $normalized_uri = $this->normalize_payload($raw_uri);
-
-        foreach ($this->patterns as $type => $regex) {
-            if ($type === 'ua') continue;
-            $this->match_pattern($regex, $normalized_uri, $type . '_uri');
-        }
+        $this->scan_value_mutations($raw_uri, 'uri');
     }
 
     private function engage_ban_protocol(string $reason): void {
@@ -382,7 +423,6 @@ class VGTS_Aegis {
         }
 
         $table = $wpdb->prefix . (defined('VGTS_TABLE_BANS') ? VGTS_TABLE_BANS : 'vgts_apex_bans'); 
-        // [WP.ORG COMPLIANCE]: URL Escaping vor DB Insert
         $uri   = substr(esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'] ?? '')), 0, 255);
 
         $wpdb->query($wpdb->prepare(
@@ -394,7 +434,7 @@ class VGTS_Aegis {
     private function terminate(string $reason, string $action_type, string $vector_type): void {
         global $wpdb;
 
-        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua', 'probes'], true));
+        $will_ban = ($this->mode !== 'learning' && in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name', '_stripped', '_no_quotes', '_stripped_no_quotes'], '', $vector_type), ['sqli', 'rce', 'lfi', 'framework', 'ua', 'probes'], true));
         if ($will_ban) {
             $action_type = 'BAN'; 
         }
@@ -406,7 +446,7 @@ class VGTS_Aegis {
                 'type'     => sanitize_text_field($action_type),
                 'message'  => sanitize_textarea_field($reason),
                 'ip'       => $this->validated_ip,
-                'severity' => (in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name'], '', $vector_type), ['sqli', 'rce', 'lfi'], true) || $action_type === 'BAN') ? 10 : 5
+                'severity' => (in_array(str_replace(['_body', '_header', '_uri', '_json_tree', '_json_raw_fallback', '_post', '_get', '_cookie', '_file_name', '_stripped', '_no_quotes', '_stripped_no_quotes'], '', $vector_type), ['sqli', 'rce', 'lfi'], true) || $action_type === 'BAN') ? 10 : 5
             ]);
         }
 
@@ -420,7 +460,6 @@ class VGTS_Aegis {
         
         $safe_vector = preg_replace('/[^a-zA-Z0-9_]/', '', $vector_type); 
 
-        // [WP.ORG COMPLIANCE]: Header Protocol Strikt sanitisiert
         if (!headers_sent()) {
             $protocol = sanitize_text_field(wp_unslash($_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1'));
             header("$protocol 403 Forbidden", true, 403);
@@ -450,7 +489,9 @@ class VGTS_Aegis {
             return false; 
         }
         
-        if (in_array($this->validated_ip, ['127.0.0.1', '::1', 'fe80::1'], true)) {
+        // Strict Local IP validation against actual physical socket (Kills header spoof whitelists!)
+        $socket_ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        if (in_array($socket_ip, ['127.0.0.1', '::1', 'fe80::1'], true)) {
             return true;
         }
 
@@ -469,9 +510,9 @@ class VGTS_Aegis {
         }
 
         if ($ua !== '' && preg_match('/(googlebot|bingbot|duckduckbot|yandexbot)/i', $ua)) {
-            $hostname = gethostbyaddr($this->validated_ip);
+            $hostname = @gethostbyaddr($this->validated_ip);
             if ($hostname !== false && $hostname !== $this->validated_ip) {
-                $forward_ips = gethostbynamel($hostname);
+                $forward_ips = @gethostbynamel($hostname);
                 if (is_array($forward_ips) && in_array($this->validated_ip, $forward_ips, true)) {
                     if (preg_match('/(?:\.|^)(googlebot\.com|search\.msn\.com|yandex\.com|yandex\.net|yandex\.ru|duckduckgo\.com)$/i', $hostname)) {
                         return true;
@@ -484,13 +525,12 @@ class VGTS_Aegis {
     }
 
     private function is_static_asset(): bool {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $uri = (string) wp_unslash($_SERVER['REQUEST_URI'] ?? '');
         $path = parse_url($uri, PHP_URL_PATH) ?? '';
 
         // Path-Info Attack Guard
         if (stripos($path, '.php/') !== false) {
-        return false;
+            return false;
         }
 
         return (bool) preg_match('/\.(jpg|jpeg|png|gif|webp|svg|css|js|woff2?|ttf|eot|ico)$/i', $path);
