@@ -477,9 +477,10 @@ The repository includes **3 Python-based red team test scripts** for independent
 
 | Script | Module Tested | Technique |
 |---|---|---|
-| `redteam_aegis.py` | AEGIS WAF | SQLi, XSS, RCE, LFI payload injection — validates block rate and response behavior |
-| `redteam_cerberus.py` | CERBERUS | Brute-force simulation with IP rotation — validates fail-state tracking and lockout |
-| `redteam_shield.py` | VGT SHIELD | Bot simulation without PoW — validates challenge-response enforcement |
+| `Redteamtest1.py` | AEGIS WAF | The script tests whether the AEGIS WAF detects and blocks attack payloads for SQLi, XSS, LFI, and RCE, or whether they can be bypassed |
+| `Redteamtest2.py` | AEGIS WAF | The script tests whether the AEGIS WAF detects and blocks JSON‑obfuscated attack payloads (XSS, SQLi, LFI, and malformed JSON evasions), or whether they can be bypassed |
+| `redteamtest3.py` | AEGIS WAF | The script tests whether the AEGIS WAF detects and blocks polymorphically mutated attack payloads (SQLi, XSS, LFI, RCE) across multiple HTTP methods (GET, POST forms, JSON, multipart, header injection) – including WordPress‑specific vectors such as polyglot uploads, REST API evasions, and Shellshock/JNDI probes – or whether they can be bypassed |
+| `redteam4.py` | AEGIS WAF | The script tests whether the AEGIS WAF detects and blocks deeply obfuscated, polymorphic attack payloads (advanced SQLi, XSS, LFI, RCE) using techniques such as double URL encoding, comment‑based slicing, HTML entity scrambling, JSON Unicode obfuscation, HTTP header smuggling, and parameter pollution – or whether they can be bypassed |
 
 ---
 
