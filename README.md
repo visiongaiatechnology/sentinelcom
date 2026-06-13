@@ -25,6 +25,39 @@ This project is a **Proof of Concept (PoC)** and part of ongoing research and de
 Found a vulnerability or have an improvement? **Open an issue or contact us.**
 
 ---
+## 🧭 Project Direction — Sentinel CE & VGT WP-Desk
+
+VGT Sentinel Community Edition remains the open-source foundation of the VisionGaia security stack.
+
+Starting with the 1.7.x branch, the standalone Sentinel CE repository is treated as a stable **open-source core / LTS foundation**. Security fixes, compatibility improvements and community contributions remain welcome, but major feature development will increasingly move into the integrated **VGT WP-Desk Security Center**.
+
+The reason is architectural: Sentinel becomes significantly more powerful when operated together with the broader VGT control layer:
+
+```text
+VGT WP-Desk Security Center
+├── Sentinel CE / V7        — WAF, IDS, bans, threat logs
+├── Throne Guard            — capability hardening, Superkey vault
+├── Dattrack                — local telemetry and operational insight
+├── Command Center          — diagnostics, runtime state, task management
+└── Recovery / Safe Mode    — classic admin fallback and controlled recovery
+```
+
+Sentinel CE will continue to exist as a transparent, forkable and self-hosted security framework for WordPress. Developers, researchers and operators are encouraged to audit, extend and adapt the standalone version for their own environments.
+
+For users who want the full integrated operator experience — including desktop workflow, Security Center, live diagnostics, privilege hardening and local telemetry — we recommend using **VGT WP-Desk**, where Sentinel is developed as part of a unified WordPress operations and security environment.
+
+**In short:**
+
+* **Sentinel CE Standalone** → open-source security core / LTS foundation
+* **VGT WP-Desk Security Center** → actively developed integrated operator platform
+* **Sentinel V7** → advanced research and next-generation security engine
+
+This project is not abandoned. It is becoming the stable open foundation for the larger VGT WordPress security ecosystem.
+
+| 🖥️ **[VGT WP-Desk](https://github.com/visiongaiatechnology/vgtdesk)** | **Operator Desktop / Security Center** | Integrated WordPress operations workspace with Sentinel, Throne Guard, Dattrack, diagnostics and recovery controls |
+
+
+---
 
 
 ## 📋 Changelog — V1.7.0
@@ -277,37 +310,6 @@ STYX LITE (Outbound Control)
 → Telemetry Kill Switch for api.wordpress.org
 → Supply-chain exfiltration blocked
 ```
-
-## 🧭 Project Direction — Sentinel CE & VGT WP-Desk
-
-VGT Sentinel Community Edition remains the open-source foundation of the VisionGaia security stack.
-
-Starting with the 1.7.x branch, the standalone Sentinel CE repository is treated as a stable **open-source core / LTS foundation**. Security fixes, compatibility improvements and community contributions remain welcome, but major feature development will increasingly move into the integrated **VGT WP-Desk Security Center**.
-
-The reason is architectural: Sentinel becomes significantly more powerful when operated together with the broader VGT control layer:
-
-```text
-VGT WP-Desk Security Center
-├── Sentinel CE / V7        — WAF, IDS, bans, threat logs
-├── Throne Guard            — capability hardening, Superkey vault
-├── Dattrack                — local telemetry and operational insight
-├── Command Center          — diagnostics, runtime state, task management
-└── Recovery / Safe Mode    — classic admin fallback and controlled recovery
-```
-
-Sentinel CE will continue to exist as a transparent, forkable and self-hosted security framework for WordPress. Developers, researchers and operators are encouraged to audit, extend and adapt the standalone version for their own environments.
-
-For users who want the full integrated operator experience — including desktop workflow, Security Center, live diagnostics, privilege hardening and local telemetry — we recommend using **VGT WP-Desk**, where Sentinel is developed as part of a unified WordPress operations and security environment.
-
-**In short:**
-
-* **Sentinel CE Standalone** → open-source security core / LTS foundation
-* **VGT WP-Desk Security Center** → actively developed integrated operator platform
-* **Sentinel V7** → advanced research and next-generation security engine
-
-This project is not abandoned. It is becoming the stable open foundation for the larger VGT WordPress security ecosystem.
-
-| 🖥️ **[VGT WP-Desk](https://github.com/visiongaiatechnology/vgtdesk)** | **Operator Desktop / Security Center** | Integrated WordPress operations workspace with Sentinel, Throne Guard, Dattrack, diagnostics and recovery controls |
 
 
 ---
